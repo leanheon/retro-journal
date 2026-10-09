@@ -1,0 +1,3 @@
+# Local-only values. Hosted values are managed through Sites environment settings.
+BLOG_OWNER_EMAIL="seedy@sites.test"
+BLOG_ORIGIN="http://127.0.0.1:5173"
