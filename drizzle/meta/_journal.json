@@ -8,6 +8,20 @@
       "when": 1791547993017,
       "tag": "0000_mean_echo",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1791597530747,
+      "tag": "0001_naive_zeigeist",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791599241635,
+      "tag": "0002_chunky_black_queen",
+      "breakpoints": true
     }
   ]
 }

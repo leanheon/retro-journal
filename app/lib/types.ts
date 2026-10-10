@@ -8,6 +8,9 @@ export type PostCategoryWithWelcome = PostCategory | typeof WELCOME_CATEGORY;
 export const COVER_STYLES = ["stripes", "sun", "type", "landscape"] as const;
 export type CoverStyle = (typeof COVER_STYLES)[number];
 
+export const COVER_TONES = ["original", "newsprint"] as const;
+export type CoverTone = (typeof COVER_TONES)[number];
+
 export type PostId = number | "welcome";
 
 export type Post = {
@@ -21,6 +24,9 @@ export type Post = {
   published: boolean;
   featured: boolean;
   cover: CoverStyle;
+  coverImage: string | null;
+  coverTitle: boolean;
+  coverTone: CoverTone;
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;
@@ -44,6 +50,9 @@ export type PostInput = {
   published?: unknown;
   featured?: unknown;
   cover?: unknown;
+  coverImage?: unknown;
+  coverTitle?: unknown;
+  coverTone?: unknown;
 };
 
 export type SettingsInput = {

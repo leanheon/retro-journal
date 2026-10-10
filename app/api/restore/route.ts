@@ -1,5 +1,5 @@
 import { requireBlogOwner } from "../../lib/auth";
-import { databaseErrorMessage, restoreBackup } from "../../lib/db";
+import { checkCoverImage, databaseErrorMessage, restoreBackup } from "../../lib/db";
 import { jsonError, noStoreHeaders, sameOriginError } from "../../lib/http";
 import { validatePostInput, validateSettingsInput } from "../../lib/validation";
 import type { BackupPayload, PostInput, SettingsInput } from "../../lib/types";
@@ -68,6 +68,9 @@ export async function POST(request: Request) {
       published: post.published ?? false,
       featured: post.featured ?? false,
       cover: post.cover ?? "stripes",
+      coverImage: post.coverImage ?? null,
+      coverTitle: post.coverTitle ?? false,
+      coverTone: post.coverTone ?? "newsprint",
       createdAt: restoredDate(rawPost.createdAt, now),
       updatedAt: restoredDate(rawPost.updatedAt, now),
       publishedAt:
@@ -75,6 +78,16 @@ export async function POST(request: Request) {
           ? null
           : restoredDate(rawPost.publishedAt, now),
     });
+  }
+
+  for (const post of restoredPosts) {
+    const coverCheck = await checkCoverImage(post.coverImage);
+    if (coverCheck === "missing") {
+      return jsonError(`글 복원 실패: 표지 이미지를 찾을 수 없습니다 (${post.slug}).`, 400);
+    }
+    if (coverCheck === "unavailable") {
+      return jsonError("표지 이미지 저장소를 확인할 수 없습니다.", 503);
+    }
   }
 
   try {

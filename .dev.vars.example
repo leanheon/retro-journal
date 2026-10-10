@@ -1,3 +1,5 @@
 # Local-only values. Hosted values are managed through Sites environment settings.
-BLOG_OWNER_EMAIL="seedy@sites.test"
+# Generate locally with: node scripts/set-admin-password.mjs
+# Configure the hosted hash separately as a Sites secret. Never commit its value.
+BLOG_ADMIN_PASSWORD_HASH=""
 BLOG_ORIGIN="http://127.0.0.1:5173"

@@ -1,11 +1,13 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../db";
 import { posts, settings, type NewPostRow, type PostRow } from "../../db/schema";
+import { env } from "./env";
 import { DEFAULT_POSTS, DEFAULT_SETTINGS, WELCOME_POST } from "./defaults";
-import { parseTagsFromStorage } from "./validation";
+import { coverImageKey, parseTagsFromStorage } from "./validation";
 import type {
   BackupPayload,
   CoverStyle,
+  CoverTone,
   Post,
   PostCategoryWithWelcome,
   SiteSettings,
@@ -25,10 +27,33 @@ export function toPost(row: PostRow): Post {
     published: row.published,
     featured: row.featured,
     cover: row.cover as CoverStyle,
+    coverImage: row.coverImage ?? null,
+    coverTitle: row.coverTitle,
+    coverTone: (row.coverTone === "original" ? "original" : "newsprint") as CoverTone,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     publishedAt: row.publishedAt,
   };
+}
+
+export type CoverImageCheck = "ok" | "missing" | "unavailable";
+
+/**
+ * Check the R2 object before a post starts referring to it. Routes call this
+ * before their database mutation so an invalid cover cannot be persisted.
+ */
+export async function checkCoverImage(
+  coverImage: string | null | undefined,
+): Promise<CoverImageCheck> {
+  if (!coverImage) return "ok";
+  const key = coverImageKey(coverImage);
+  const bucket = env.BUCKET;
+  if (!key || !bucket) return "unavailable";
+  try {
+    return (await bucket.head(key)) ? "ok" : "missing";
+  } catch {
+    return "unavailable";
+  }
 }
 
 function toSettings(row: typeof settings.$inferSelect | undefined): SiteSettings {
@@ -186,6 +211,9 @@ export async function createPost(input: {
   published: boolean;
   featured: boolean;
   cover: string;
+  coverImage?: string | null;
+  coverTitle?: boolean;
+  coverTone?: CoverTone;
 }): Promise<Post> {
   const db = getDb();
   const now = new Date().toISOString();
@@ -199,6 +227,9 @@ export async function createPost(input: {
     published: input.published,
     featured: input.featured,
     cover: input.cover,
+    coverImage: input.coverImage ?? null,
+    coverTitle: input.coverTitle ?? false,
+    coverTone: input.coverTone ?? "newsprint",
     createdAt: now,
     updatedAt: now,
     publishedAt: input.published ? now : null,
@@ -220,6 +251,9 @@ export async function updatePost(
     published: boolean;
     featured: boolean;
     cover: string;
+    coverImage?: string | null;
+    coverTitle?: boolean;
+    coverTone?: CoverTone;
   }>,
 ): Promise<Post | null> {
   const db = getDb();
@@ -236,6 +270,9 @@ export async function updatePost(
   if (input.published !== undefined) set.published = input.published;
   if (input.featured !== undefined) set.featured = input.featured;
   if (input.cover !== undefined) set.cover = input.cover;
+  if (input.coverImage !== undefined) set.coverImage = input.coverImage;
+  if (input.coverTitle !== undefined) set.coverTitle = input.coverTitle;
+  if (input.coverTone !== undefined) set.coverTone = input.coverTone;
   if (input.published !== undefined) {
     set.publishedAt = input.published ? existing.publishedAt ?? now : null;
   }
@@ -267,6 +304,9 @@ function seedRow(post: Post): NewPostRow {
     published: post.published,
     featured: post.featured,
     cover: post.cover,
+    coverImage: post.coverImage ?? null,
+    coverTitle: post.coverTitle ?? false,
+    coverTone: post.coverTone ?? "newsprint",
     createdAt: post.createdAt || now,
     updatedAt: post.updatedAt || now,
     publishedAt: post.publishedAt || (post.published ? now : null),

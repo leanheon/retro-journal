@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPostBySlug, getSettings } from "../../lib/db";
-import { renderMarkdown } from "../../lib/markdown";
 import { blogOrigin } from "../../lib/env";
+import "../article.css";
+import NewspaperArticle from "../../components/NewspaperArticle";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -31,6 +32,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       modifiedTime: post.updatedAt,
       authors: [settings.author],
       siteName: settings.title,
+      ...(post.coverImage ? { images: [{ url: new URL(post.coverImage, blogOrigin()).toString(), alt: post.title }] } : {}),
     },
   };
 }
@@ -40,45 +42,27 @@ export default async function PostPage({ params }: PageProps) {
   const [post, settings] = await Promise.all([getPostBySlug(slug), getSettings()]);
   if (!post) notFound();
 
-  const date = new Intl.DateTimeFormat("ko-KR", {
-    dateStyle: "long", timeZone: 'Asia/Seoul',
-  }).format(new Date(post.publishedAt ?? post.createdAt));
-
   return (
     <main className="article-page" id="main">
-      <header className="article-header">
-        <Link className="article-brand" href="/">
-          {settings.title}
-        </Link>
-        <nav aria-label="사이트 메뉴" className="article-nav">
-          <Link href="/">홈</Link>
-          <Link href="/admin">관리</Link>
-        </nav>
+      <header className="article-header article-masthead">
+        <div className="article-masthead-top">
+          <Link className="article-brand" href="/">
+            {settings.title}
+          </Link>
+          <span className="article-issue">개인 기록 / {post.category}</span>
+          <nav aria-label="사이트 메뉴" className="article-nav">
+            <Link href="/">홈</Link>
+            <Link href="/admin">관리</Link>
+          </nav>
+        </div>
+        <div className="article-masthead-rule" aria-hidden="true" />
       </header>
 
-      <article className="article-shell">
-        <div className={`article-cover cover-${post.cover}`} aria-hidden="true">
-          <span>{post.category}</span>
-        </div>
-        <header className="article-title-block">
-          <p className="article-kicker">
-            {post.category} · {date}
-          </p>
-          <h1>{post.title}</h1>
-          {post.excerpt ? <p className="article-excerpt">{post.excerpt}</p> : null}
-          <div className="article-meta">
-            <span>{settings.author}</span>
-            {post.tags.length ? (
-              <span aria-label="태그">{post.tags.map((tag) => `#${tag}`).join(" ")}</span>
-            ) : null}
-          </div>
-        </header>
-        <div className="article-body">{renderMarkdown(post.body)}</div>
-      </article>
+      <NewspaperArticle post={post} settings={settings} />
 
       <footer className="article-footer">
-        <Link href="/">← 기록 목록으로</Link>
-        <span>{settings.title} · {settings.author}</span>
+        <Link href="/">← 기록 목록</Link>
+        <span>{settings.title} / {settings.author}</span>
       </footer>
     </main>
   );

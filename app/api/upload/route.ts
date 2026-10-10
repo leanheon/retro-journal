@@ -1,8 +1,10 @@
 import { requireBlogOwner } from "../../lib/auth";
 import { env } from "../../lib/env";
 import { jsonError, noStoreHeaders, sameOriginError } from "../../lib/http";
+import { UPLOADED_IMAGE_KEY_PATTERN } from "../../lib/validation";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const MAX_LIST_LIMIT = 40;
 
 type ImageType = {
   extension: "png" | "jpg" | "webp" | "gif";
@@ -81,4 +83,35 @@ export async function POST(request: Request) {
   }
 
   return Response.json({ url: `/media/${key}` }, { status: 201, headers: noStoreHeaders() });
+}
+
+export async function GET(request: Request) {
+  const owner = await requireBlogOwner();
+  if (!owner.ok) return owner.response;
+
+  const bucket = env.BUCKET;
+  if (!bucket) return jsonError("이미지 저장소가 아직 설정되지 않았습니다.", 503);
+
+  const url = new URL(request.url);
+  const rawLimit = Number(url.searchParams.get("limit") ?? "24");
+  const limit = Number.isFinite(rawLimit)
+    ? Math.min(MAX_LIST_LIMIT, Math.max(1, Math.floor(rawLimit)))
+    : 24;
+  const cursor = url.searchParams.get("cursor")?.trim() || undefined;
+
+  try {
+    const listed = await bucket.list({ limit, ...(cursor ? { cursor } : {}) });
+    const images = listed.objects
+      .filter((object) => UPLOADED_IMAGE_KEY_PATTERN.test(object.key))
+      .map((object) => ({
+        url: `/media/${object.key}`,
+        uploadedAt: object.uploaded.toISOString(),
+      }));
+    return Response.json(
+      { images, cursor: listed.truncated ? listed.cursor : null },
+      { headers: noStoreHeaders() },
+    );
+  } catch {
+    return jsonError("이미지 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.", 500);
+  }
 }

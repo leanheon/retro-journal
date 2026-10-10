@@ -16,6 +16,9 @@ export const posts = sqliteTable("posts", {
   published: integer("published", { mode: "boolean" }).notNull().default(false),
   featured: integer("featured", { mode: "boolean" }).notNull().default(false),
   cover: text("cover").notNull().default("stripes"),
+  coverImage: text("cover_image").default(sql`NULL`),
+  coverTitle: integer("cover_title", { mode: "boolean" }).notNull().default(false),
+  coverTone: text("cover_tone").notNull().default("newsprint"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   publishedAt: text("published_at"),
@@ -40,3 +43,16 @@ export type PostRow = typeof posts.$inferSelect;
 export type NewPostRow = typeof posts.$inferInsert;
 export type SettingsRow = typeof settings.$inferSelect;
 export type NewSettingsRow = typeof settings.$inferInsert;
+
+// Only token digests are stored; password hashes live in server secrets.
+export const adminSessions = sqliteTable("admin_sessions", {
+  tokenHash: text("token_hash").primaryKey(),
+  passwordVersion: text("password_version").notNull(),
+  expiresAt: integer("expires_at").notNull(),
+});
+
+export const adminLoginAttempts = sqliteTable("admin_login_attempts", {
+  clientKey: text("client_key").primaryKey(),
+  windowStarted: integer("window_started").notNull(),
+  attempts: integer("attempts").notNull(),
+});

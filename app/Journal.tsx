@@ -1,35 +1,142 @@
 'use client';
+
 import { useMemo, useState } from 'react';
-import { ArrowUpRight, ArrowRight, Search, X, ArrowDown, Rss, Menu, Asterisk } from 'lucide-react';
+import { ArrowUpRight, ArrowRight, Search, X, ArrowDown, Rss, Menu } from 'lucide-react';
+import { DEFAULT_SETTINGS } from './lib/defaults';
 import type { Post, SiteSettings } from './lib/types';
-const fallback = { title: '여백 기록실', author: '김지헌', description: '일상과 생각, 오래 좋아하는 것들을 기록합니다.', bio: '안녕하세요, 김지헌입니다. 스쳐 지나가는 일상과 문득 떠오른 생각, 오래 곁에 두고 싶은 취향을 이곳에 모읍니다.' };
+import './journal.css';
+import PostCover from './components/PostCover';
+
 const categories = ['전체', '일상', '생각', '취향', '만들기'];
-const date = (value: string) => new Date(value).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Seoul' }).replace(/\. /g, '.').replace(/\.$/, '');
-export function RetroArt({ kind = 'stripes', className = '' }: { kind?: string; className?: string }) {
- return <div className={`retro-art art-${kind} ${className}`} aria-hidden="true"><div className="art-grid" /><div className="art-sun" /><div className="art-ribbons"><i /><i /><i /><i /></div><div className="art-orbit" /><div className="art-type">Aa<span>THE ART OF<br />PAYING ATTENTION.</span></div><span className="art-caption">COLLECTION OF LITTLE THINGS</span><span className="art-number">No. 001 ↗</span></div>;
-}
-export default function Journal({ initialPosts, initialSettings }: { initialPosts: Post[]; initialSettings: SiteSettings }) {
- const posts = initialPosts, settings = { ...fallback, ...initialSettings };
- const [category, setCategory] = useState('전체'), [search, setSearch] = useState('');
- const [searchOpen, setSearchOpen] = useState(false), [menuOpen, setMenuOpen] = useState(false);
- const loading = false, error = '';
- const filtered = useMemo(() => posts.filter(p => (category === '전체' || p.category === category) && `${p.title} ${p.excerpt} ${p.body} ${p.tags.join(' ')}`.toLowerCase().includes(search.toLowerCase())), [posts, category, search]);
- const featured = posts.find(p => p.featured) ?? posts[0];
- const jump = (cat: string) => { setCategory(cat); setMenuOpen(false); document.getElementById('archive')?.scrollIntoView({ behavior: 'smooth' }); };
- return <div className="site-shell">
-  <div className="edition-bar"><span>A PERSONAL JOURNAL BY {settings.author}</span><span>ONLINE JOURNAL <span className="edition-dot">●</span> EST. 2026</span></div>
-  <header className="site-header"><a href="/" className="wordmark" aria-label={`${settings.title} 홈`}><Asterisk strokeWidth={1.5} /><span>{settings.title}<small>YEOBAEK JOURNAL</small></span></a><nav className={menuOpen ? 'nav-open' : ''} aria-label="주 메뉴"><a href="#archive" onClick={() => setMenuOpen(false)}>모든 기록 <span>↗</span></a><a href="#about" onClick={() => setMenuOpen(false)}>기록하는 사람 <span>↗</span></a><a href="/feed.xml">RSS <Rss size={13} /></a></nav><div className="header-actions"><button className="icon-button" onClick={() => setSearchOpen(!searchOpen)} aria-label={searchOpen ? '검색 닫기' : '기록 검색'} aria-expanded={searchOpen}>{searchOpen ? <X size={21} /> : <Search size={21} />}</button><button className="icon-button mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="메뉴 열기" aria-expanded={menuOpen}><Menu size={22} /></button></div></header>
-  {searchOpen && <form className="search-panel" onSubmit={e => { e.preventDefault(); jump('전체'); }}><label htmlFor="journal-search">어떤 기록을 찾고 있나요?</label><div><input autoFocus id="journal-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="제목, 내용, 태그로 검색" type="search" /><button className="button" type="submit">검색 <ArrowRight size={17} /></button></div></form>}
-  <main id="main"><section className="hero" aria-labelledby="hero-title"><div className="hero-copy"><div className="eyebrow"><span className="tiny-star">✳</span> EVERYDAY THINGS, EXTRAORDINARY NOTES.</div><h1 id="hero-title">LIFE,<br /><span>IN NOTES.</span></h1><div className="hero-bottom"><p>흘러가는 하루에,<br />작은 <span className="underline-rust">기록 하나.</span></p><p className="hero-description">{settings.description}<br />서두르지 않고, 나만의 속도로.</p></div><a className="hero-link" href="#archive">기록 둘러보기 <span><ArrowDown size={18} /></span></a></div><div className="hero-visual"><RetroArt kind="hero" /><div className="hero-stamp">SLOW DOWN.<br />LOOK AROUND.<br /><strong>WRITE IT DOWN.</strong></div><span className="visual-coordinate">FIELD NOTES / VOLUME 01</span></div></section>
-  <div className="journal-tape" aria-hidden="true"><span>일상</span><Asterisk /><span>생각</span><Asterisk /><span>취향</span><Asterisk /><span>만들기</span><Asterisk /><span>조금씩, 오래도록.</span><ArrowUpRight /></div>
-  <section className="featured-section" aria-labelledby="featured-title"><div className="section-label"><span>01 / EDITOR’S PICK</span><span>천천히 읽어보세요 <ArrowDown size={13} /></span></div><div className="featured-layout"><a className="featured-art-link" href={featured ? `/posts/${featured.slug}` : '#about'} tabIndex={-1} aria-hidden="true"><RetroArt kind={featured?.cover ?? 'stripes'} /></a><div className="featured-copy"><span className="tag-label">{featured?.category ?? '기록실 안내'} <span>—</span> SELECTED NOTE</span><h2 id="featured-title"><a href={featured ? `/posts/${featured.slug}` : '#about'}>{featured?.title ?? <>기록의 시작은,<br />아주 작은 발견.</>}</a></h2><p>{featured?.excerpt ?? '매일 쓰지 않아도 괜찮습니다. 마음에 남은 장면 하나, 오래 생각한 문장 하나. 그 작은 조각들이 모여 나만의 이야기가 됩니다.'}</p><div className="featured-meta"><span>{featured ? date(featured.publishedAt ?? featured.createdAt) : '김지헌의 개인 기록실'} · {featured ? `${Math.max(1, Math.ceil(featured.body.length / 500))}분 읽기` : '일상 · 생각 · 취향'}</span><a className="round-link" href={featured ? `/posts/${featured.slug}` : '#about'} aria-label={featured ? `${featured.title} 읽기` : '기록실 소개 읽기'}><ArrowUpRight size={26} /></a></div></div></div></section>
-  <section className="archive-section" id="archive" aria-labelledby="archive-title"><div className="archive-heading"><div><span className="section-label">02 / THE ARCHIVE</span><h2 id="archive-title">차곡차곡, 기록.</h2></div><span className="archive-total">TOTAL <strong>{String(posts.length).padStart(2, '0')}</strong> NOTES</span></div><div className="archive-toolbar"><div className="category-tabs" role="group" aria-label="카테고리 필터">{categories.map(cat => <button key={cat} className={category === cat ? 'active' : ''} onClick={() => setCategory(cat)} aria-pressed={category === cat}>{cat}<small>{cat === '전체' ? posts.length : posts.filter(p => p.category === cat).length}</small></button>)}</div><button className="archive-search" onClick={() => { setSearchOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }} aria-label="기록 검색"><Search size={17} /><span>기록 검색</span></button></div>
-  {search && <div className="search-summary">“{search}” 검색 결과 <button onClick={() => setSearch('')}>검색 지우기 <X size={14} /></button></div>}
-  {loading ? <div className="empty-state" role="status"><Asterisk className="loading-star" /><p>기록을 펼치고 있어요.</p></div> : error ? <div className="empty-state" role="alert"><p>{error}</p><button className="button" onClick={() => window.location.reload()}>다시 불러오기</button></div> : filtered.length ? <div className="post-grid">{filtered.map((post, index) => <article className="post-card" key={post.id}><a className="post-cover" href={`/posts/${post.slug}`} aria-label={`${post.title} 읽기`}><RetroArt kind={post.cover} /><span className="post-index">NOTE / {String(index + 1).padStart(3, '0')}</span></a><div className="post-kicker"><span>{post.category}</span><time dateTime={post.publishedAt ?? post.createdAt}>{date(post.publishedAt ?? post.createdAt)}</time></div><h3><a href={`/posts/${post.slug}`}>{post.title}<ArrowUpRight size={20} /></a></h3><p>{post.excerpt}</p><div className="post-tags">{post.tags.map(tag => <button key={tag} onClick={() => { setSearch(tag); setCategory('전체'); }}>#{tag}</button>)}</div></article>)}</div> : <div className="empty-state"><Asterisk size={39} strokeWidth={1} /><h3>{search || category !== '전체' ? '아직 이곳에는 기록이 없어요.' : '첫 번째 페이지를 기다리는 중.'}</h3><p>{search || category !== '전체' ? '다른 검색어나 카테고리로 살펴보세요.' : '곧 이곳에 일상과 생각들이 차곡차곡 쌓일 거예요.'}</p>{(search || category !== '전체') && <button className="text-button" onClick={() => { setSearch(''); setCategory('전체'); }}>모든 기록 보기 <ArrowRight size={15} /></button>}</div>}
-  <div className="archive-end"><span>— YOU’VE REACHED THE END, FOR NOW. —</span><Asterisk size={20} /></div></section>
-  <section className="about-section" id="about" aria-labelledby="about-title"><div className="about-label"><span>03 / THE PERSON BEHIND THE NOTES</span><Asterisk size={56} strokeWidth={1} /></div><div className="about-main"><span className="eyebrow">HELLO, I’M {settings.author}.</span><h2 id="about-title">잘 쓰기보다,<br /><span>계속 쓰는 마음.</span></h2><p>{settings.bio}</p><div className="about-signature">{settings.author}<span>기록하는 사람</span></div></div><div className="about-side"><span className="about-side-title">A FEW THINGS<br />I WRITE ABOUT</span>{categories.slice(1).map((cat, i) => <button key={cat} onClick={() => jump(cat)}><small>0{i + 1}</small><span>{cat}</span><ArrowUpRight size={21} /></button>)}<div className="mini-stripes"><i /><i /><i /><i /></div></div></section>
-  <div className="closing-line"><span>MAKE ROOM FOR</span><strong>THE LITTLE THINGS.</strong><Asterisk strokeWidth={1} /></div></main>
-  <footer className="site-footer"><a className="footer-name" href="/">{settings.title}<span>© {new Date().getFullYear()} {settings.author}</span></a><p>작은 기록이 쌓여, 나다운 시간이 됩니다.</p><div><a href="/feed.xml">RSS <Rss size={12} /></a><a href="/admin">기록실 관리 <ArrowUpRight size={13} /></a><a href="#main">BACK TO TOP ↑</a></div></footer>
- </div>;
+const date = (value: string) => new Date(value).toLocaleDateString('ko-KR', {
+  year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Seoul',
+}).replace(/\. /g, '.').replace(/\.$/, '');
+
+function PrintMark({ className = '' }: { className?: string }) {
+  return <svg className={className} width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+    <path d="M18 1v34M1 18h34M6 6l24 24M6 30 30 6" stroke="currentColor" strokeWidth="2" />
+    <circle cx="18" cy="18" r="6" fill="var(--paper)" stroke="currentColor" strokeWidth="2" />
+    <circle cx="18" cy="18" r="2" fill="currentColor" />
+  </svg>;
 }
 
+function FoldedBands() {
+  return <svg className="folded-bands" viewBox="0 0 520 520" aria-hidden="true">
+    <path fill="#476150" d="M46 0h51v214l262 255v51h-51L46 265Z" />
+    <path fill="#a6ab8f" d="M97 0h51v214l262 255v51h-51L97 265Z" />
+    <path fill="#d9c792" d="M148 0h51v214l262 255v51h-51L148 265Z" />
+    <path fill="#bc6c4d" d="M199 0h51v214l262 255v51h-51L199 265Z" />
+    <path fill="#24271f" fillOpacity=".11" d="M46 214h204v51H46ZM308 469h204v51H308Z" />
+  </svg>;
+}
+
+export default function Journal({ initialPosts, initialSettings }: { initialPosts: Post[]; initialSettings: SiteSettings }) {
+  const posts = initialPosts;
+  const settings = { ...DEFAULT_SETTINGS, ...initialSettings };
+  const [category, setCategory] = useState('전체');
+  const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const filtered = useMemo(() => posts.filter(post =>
+    (category === '전체' || post.category === category) &&
+    `${post.title} ${post.excerpt} ${post.body} ${post.tags.join(' ')}`.toLowerCase().includes(search.toLowerCase()),
+  ), [posts, category, search]);
+  const featured = posts.find(post => post.featured && !post.isSample);
+  const countFor = (cat: string) => cat === '전체' ? posts.length : posts.filter(post => post.category === cat).length;
+  const jump = (cat: string) => {
+    setCategory(cat);
+    setMenuOpen(false);
+    document.getElementById('archive')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  };
+
+  return <div className="journal-shell">
+    <div className="press-edition"><span>{settings.author}의 개인 블로그</span><span>일상과 생각, 좋아하는 것들</span><a href="/feed.xml">RSS로 읽기 <Rss size={11} /></a></div>
+    <header className="press-header">
+      <a href="/" className="press-wordmark" aria-label={`${settings.title} 홈`}><PrintMark /><span>{settings.title}</span></a>
+      <nav id="journal-nav" className={menuOpen ? 'press-nav is-open' : 'press-nav'} aria-label="주 메뉴">
+        <a href="#archive" onClick={() => setMenuOpen(false)}><small>01</small> 글 목록</a>
+        <a href="#about" onClick={() => setMenuOpen(false)}><small>02</small> 쓰는 사람</a>
+      </nav>
+      <div className="press-header-actions">
+        <button className="press-icon-button" onClick={() => setSearchOpen(!searchOpen)} aria-label={searchOpen ? '검색 닫기' : '글 검색'} aria-controls="journal-search-panel" aria-expanded={searchOpen}>{searchOpen ? <X size={21} /> : <Search size={21} />}</button>
+        <button className="press-icon-button press-menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? '메뉴 닫기' : '메뉴 열기'} aria-controls="journal-nav" aria-expanded={menuOpen}>{menuOpen ? <X size={22} /> : <Menu size={22} />}</button>
+      </div>
+    </header>
+    {searchOpen && <form className="press-search" id="journal-search-panel" onSubmit={event => { event.preventDefault(); jump('전체'); }}>
+      <label htmlFor="journal-search">글 검색</label>
+      <div><input autoFocus id="journal-search" value={search} onChange={event => setSearch(event.target.value)} placeholder="제목, 내용, 태그" type="search" /><button type="submit">찾기 <ArrowRight size={18} /></button></div>
+    </form>}
+
+    <main id="main">
+      <section className="journal-hero" aria-labelledby="hero-title">
+        <div className="journal-hero-copy">
+          <span className="press-label">{settings.author}의 개인 기록</span>
+          <h1 id="hero-title" className="journal-hero-title" lang="en">LIFE<br /><span>IN NOTES.</span></h1>
+          <div className="hero-note"><span className="hero-note-number" aria-hidden="true">✳</span><p>{settings.description}</p></div>
+          <a className="press-read-link" href="#archive">남겨 둔 글 보기 <span><ArrowDown size={20} /></span></a>
+        </div>
+        <figure className="journal-hero-art" aria-hidden="true">
+          <FoldedBands />
+          <span className="typewriter-seal" aria-hidden="true">기록<br />중</span>
+          <img className="typewriter-illustration" src="/images/typewriter-cutout.png" alt="" draggable={false} />
+          <figcaption><span>일상 · 생각 · 취향 · 만들기</span><span>{settings.author} 씀</span></figcaption>
+        </figure>
+      </section>
+
+      <div className="press-ornament" aria-hidden="true"><span /><i>✦</i><span /></div>
+
+      {featured && <section className="press-featured" aria-labelledby="featured-title">
+        <a className="press-featured-cover" href={`/posts/${featured.slug}`} tabIndex={-1} aria-hidden="true"><PostCover {...featured} /></a>
+        <div className="press-featured-copy">
+          <div className="press-section-kicker"><span>골라 둔 글</span><span>{featured.category}</span></div>
+          <h2 id="featured-title"><a href={`/posts/${featured.slug}`}>{featured.title}</a></h2>
+          <p>{featured.excerpt}</p>
+          <a className="press-featured-link" href={`/posts/${featured.slug}`}>{date(featured.publishedAt ?? featured.createdAt)} · {Math.max(1, Math.ceil(featured.body.length / 500))}분 읽기 <ArrowUpRight size={26} /></a>
+        </div>
+      </section>}
+
+      <section className="journal-archive" id="archive" aria-labelledby="archive-title">
+        <div className="press-section-heading"><div><span className="press-section-index">01 / 기록</span><h2 id="archive-title">남겨 둔 글.</h2></div><span className="press-total">모두 <strong>{posts.length}</strong>편</span></div>
+        <div className="press-categories" role="group" aria-label="카테고리 필터">
+          {categories.map((cat, index) => <button key={cat} className={category === cat ? 'is-active' : ''} onClick={() => setCategory(cat)} aria-pressed={category === cat} aria-label={`${cat} ${countFor(cat)}편`}><span className="category-index">0{index + 1}</span><span className="category-name">{cat}</span><small>{countFor(cat)}</small><ArrowUpRight size={19} /></button>)}
+        </div>
+        <div className="journal-content-grid">
+          <div className="press-posts">
+            <div className="press-list-heading"><span>{category === '전체' ? '전체 글' : `${category}에 관한 글`}<small>{filtered.length}편</small></span><button onClick={() => { setSearchOpen(true); window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }} aria-label="글 검색 열기">글 찾기 <Search size={15} /></button></div>
+            {search && <div className="press-search-summary">“{search}” 검색 결과 <button onClick={() => setSearch('')}>지우기 <X size={13} /></button></div>}
+            {filtered.length ? <div className="press-post-list">{filtered.map((post, index) => <article className="press-entry" key={post.id}>
+              <span className="entry-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+              <a className="press-cover" href={`/posts/${post.slug}`} aria-label={`${post.title} 읽기`}><PostCover {...post} /></a>
+              <div className="entry-copy"><div className="entry-kicker"><span>{post.category}</span><time dateTime={post.publishedAt ?? post.createdAt}>{date(post.publishedAt ?? post.createdAt)}</time></div><h3><a href={`/posts/${post.slug}`}>{post.title}<ArrowUpRight size={25} /></a></h3><p>{post.excerpt}</p><div className="entry-tags">{post.tags.map(tag => <button key={tag} onClick={() => { setSearch(tag); setCategory('전체'); }}>#{tag}</button>)}</div></div>
+            </article>)}</div> : <div className="press-empty"><span aria-hidden="true">—</span><h3>{search || category !== '전체' ? '해당하는 글이 없습니다.' : '아직 올린 글이 없습니다.'}</h3>{(search || category !== '전체') && <button onClick={() => { setSearch(''); setCategory('전체'); }}>전체 글 보기 <ArrowRight size={16} /></button>}</div>}
+            <div className="press-list-end"><span>{filtered.length > 0 ? '여기까지 읽으셨습니다.' : '다른 분류도 살펴보세요.'}</span><span aria-hidden="true">끝.</span></div>
+          </div>
+
+          <aside className="journal-about" id="about" aria-labelledby="about-title">
+            <span className="press-section-index">02 / 쓰는 사람</span>
+            <div className="about-author-line">
+              <h2 id="about-title">{settings.author}</h2>
+              <img className="author-signature" src="/images/author-signature.png" alt={`${settings.author} 서명`} />
+            </div>
+            <p>{settings.bio}</p>
+            <div className="about-rule" aria-hidden="true"><span /><i>✳</i></div>
+            <dl><div><dt>이곳은</dt><dd>개인 블로그</dd></div><div><dt>쓰는 주제</dt><dd>일상 · 생각 · 취향 · 만들기</dd></div></dl>
+            <a className="about-rss" href="/feed.xml">새 글은 RSS로 <ArrowUpRight size={20} /></a>
+            <div className="about-color-bars" aria-hidden="true"><i /><i /><i /><i /></div>
+          </aside>
+        </div>
+      </section>
+
+      <section className="press-subscribe" aria-label="RSS 구독">
+        <div><span className="press-label">가끔 들러도 좋고, 구독해도 좋고.</span><p>새 글은 RSS로 받아볼 수 있습니다.</p></div>
+        <a href="/feed.xml">RSS 구독 <ArrowUpRight strokeWidth={1.7} /></a>
+      </section>
+    </main>
+
+    <footer className="press-footer">
+      <a className="press-footer-brand" href="/">{settings.author}의 기록<span>© {new Date().getFullYear()} {settings.author}</span></a>
+      <div><a href="/admin">블로그 관리 <ArrowUpRight size={13} /></a><a href="#main">맨 위로 <ArrowUpRight size={13} /></a></div>
+    </footer>
+    <div className="press-bottom-stripes" aria-hidden="true"><i /><i /><i /><i /></div>
+  </div>;
+}

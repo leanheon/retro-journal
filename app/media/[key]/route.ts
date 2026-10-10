@@ -1,10 +1,9 @@
-import { getChatGPTUser } from "../../chatgpt-auth";
-import { isBlogOwnerEmail } from "../../lib/auth";
+import { getAdminUser } from "../../lib/auth";
 import { env } from "../../lib/env";
 import { getPosts } from "../../lib/db";
+import { UPLOADED_IMAGE_KEY_PATTERN } from "../../lib/validation";
 
-const KEY_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:png|jpe?g|webp|gif)$/iu;
+const KEY_PATTERN = UPLOADED_IMAGE_KEY_PATTERN;
 
 const CONTENT_TYPES: Record<string, string> = {
   png: "image/png",
@@ -25,6 +24,11 @@ function mediaIsReferenced(key: string, bodies: string[]): boolean {
   return bodies.some((body) => body.includes(marker));
 }
 
+function mediaIsCover(key: string, coverImages: Array<string | null>): boolean {
+  const marker = `/media/${key}`;
+  return coverImages.some((coverImage) => coverImage === marker);
+}
+
 export async function GET(request: Request, context: RouteContext) {
   const { key } = await context.params;
   if (!KEY_PATTERN.test(key)) return missing();
@@ -34,8 +38,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   let owner = false;
   try {
-    const user = await getChatGPTUser();
-    owner = isBlogOwnerEmail(user?.email);
+    owner = Boolean(await getAdminUser());
   } catch {
     owner = false;
   }
@@ -43,7 +46,10 @@ export async function GET(request: Request, context: RouteContext) {
   if (!owner) {
     try {
       const publishedPosts = await getPosts();
-      if (!mediaIsReferenced(key, publishedPosts.map((post) => post.body))) return missing();
+      if (
+        !mediaIsReferenced(key, publishedPosts.map((post) => post.body)) &&
+        !mediaIsCover(key, publishedPosts.map((post) => post.coverImage))
+      ) return missing();
     } catch {
       return missing();
     }

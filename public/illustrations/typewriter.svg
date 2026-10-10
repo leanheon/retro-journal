@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 520" role="img" aria-label="빈티지 휴대용 타자기 선화">
+  <defs>
+    <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(18)">
+      <path d="M0 0V8" stroke="#20231e" stroke-width="1" opacity=".22"/>
+    </pattern>
+    <pattern id="fine-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(-28)">
+      <path d="M0 0V5" stroke="#20231e" stroke-width=".75" opacity=".28"/>
+    </pattern>
+  </defs>
+
+  <!-- paper rising from the platen -->
+  <path d="M219 69L485 54L494 216L225 229Z" fill="#eee8d8" stroke="#20231e" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M242 88L463 76L466 90L243 102ZM247 119L469 106L470 110L247 123ZM249 137L471 125L472 129L250 142ZM253 156L474 143L475 147L254 161ZM255 176L477 162L478 166L256 181Z" fill="#20231e" opacity=".32"/>
+  <path d="M224 215L491 201" stroke="#ad402b" stroke-width="3" opacity=".72"/>
+  <path d="M229 73L238 224M482 59L489 212" stroke="#20231e" stroke-width="2" opacity=".22"/>
+
+  <!-- upright carriage and platen -->
+  <path d="M143 219L552 198L564 222L147 244Z" fill="#20231e" stroke="#20231e" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M161 218L539 201L544 214L158 234Z" fill="#69715f" stroke="#20231e" stroke-width="3"/>
+  <path d="M169 221L534 205" stroke="#eee8d8" stroke-width="2" opacity=".6"/>
+  <path d="M151 214L151 247M554 196L559 226" stroke="#20231e" stroke-width="6"/>
+  <circle cx="143" cy="231" r="17" fill="#eee8d8" stroke="#20231e" stroke-width="5"/>
+  <circle cx="143" cy="231" r="6" fill="#ad402b" stroke="#20231e" stroke-width="2"/>
+  <circle cx="557" cy="211" r="20" fill="#eee8d8" stroke="#20231e" stroke-width="5"/>
+  <circle cx="557" cy="211" r="7" fill="#ad402b" stroke="#20231e" stroke-width="2"/>
+
+  <!-- rear housing, a stepped industrial silhouette -->
+  <path d="M161 239L543 218L592 249L618 319L584 355L136 347L101 315L116 278Z" fill="#20231e" stroke="#20231e" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M160 246L531 227L572 252L593 302L565 324L145 318L124 301L136 269Z" fill="#eee8d8" stroke="#20231e" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M152 252L525 233L564 257L574 280L143 300L128 289L138 267Z" fill="url(#hatch)" opacity=".8"/>
+  <path d="M544 237L583 257L607 317L574 342L565 323L592 302L572 252Z" fill="#69715f" stroke="#20231e" stroke-width="4"/>
+  <path d="M571 259L593 313M578 257L600 307M585 261L604 302" stroke="#20231e" stroke-width="2" opacity=".55"/>
+  <path d="M139 271L164 258L173 315L145 319Z" fill="#ad402b" opacity=".75"/>
+  <path d="M145 276L158 269L163 310L149 313Z" fill="#20231e" opacity=".55"/>
+
+  <!-- platen and type guide -->
+  <path d="M188 258L528 240L542 254L192 273Z" fill="#20231e" stroke="#20231e" stroke-width="4"/>
+  <path d="M198 268L516 251L525 270L205 289Z" fill="#69715f" stroke="#20231e" stroke-width="3"/>
+  <path d="M213 285Q349 270 497 263L511 287Q350 300 216 306Z" fill="#20231e" stroke="#20231e" stroke-width="4"/>
+  <path d="M270 295Q359 283 444 282L456 302Q356 312 271 311Z" fill="#ad402b" stroke="#20231e" stroke-width="3"/>
+  <path d="M280 298Q360 289 442 287" stroke="#eee8d8" stroke-width="2" opacity=".75"/>
+  <path d="M326 290L332 306M343 288L349 305M360 287L366 303M377 285L383 302M394 284L400 300" stroke="#eee8d8" stroke-width="1" opacity=".55"/>
+
+  <!-- large keyboard body -->
+  <path d="M108 295L211 302L542 281L635 317L624 429L583 465L124 458L77 424Z" fill="#20231e" stroke="#20231e" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M127 308L213 314L539 294L610 322L600 405L570 437L142 431L101 410Z" fill="#eee8d8" stroke="#20231e" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M118 319L204 324L541 304L597 326L594 348L108 373L100 354Z" fill="url(#fine-hatch)" opacity=".9"/>
+  <path d="M103 376L594 350L589 398L570 420L144 415L108 399Z" fill="#69715f" stroke="#20231e" stroke-width="4"/>
+  <path d="M111 387L583 364M116 400L576 378M132 417L561 396" stroke="#20231e" stroke-width="1.5" opacity=".4"/>
+
+  <!-- angled key rows: blank circles keep the illustration language clean -->
+  <g fill="#eee8d8" stroke="#20231e" stroke-width="3">
+    <ellipse cx="164" cy="329" rx="15" ry="11"/><ellipse cx="202" cy="327" rx="15" ry="11"/><ellipse cx="240" cy="325" rx="15" ry="11"/><ellipse cx="278" cy="323" rx="15" ry="11"/><ellipse cx="316" cy="321" rx="15" ry="11"/><ellipse cx="354" cy="319" rx="15" ry="11"/><ellipse cx="392" cy="317" rx="15" ry="11"/><ellipse cx="430" cy="315" rx="15" ry="11"/><ellipse cx="468" cy="313" rx="15" ry="11"/><ellipse cx="506" cy="311" rx="15" ry="11"/><ellipse cx="544" cy="309" rx="15" ry="11"/>
+    <ellipse cx="151" cy="353" rx="15" ry="11"/><ellipse cx="190" cy="351" rx="15" ry="11"/><ellipse cx="229" cy="349" rx="15" ry="11"/><ellipse cx="268" cy="347" rx="15" ry="11"/><ellipse cx="307" cy="345" rx="15" ry="11"/><ellipse cx="346" cy="343" rx="15" ry="11"/><ellipse cx="385" cy="341" rx="15" ry="11"/><ellipse cx="424" cy="339" rx="15" ry="11"/><ellipse cx="463" cy="337" rx="15" ry="11"/><ellipse cx="502" cy="335" rx="15" ry="11"/><ellipse cx="541" cy="333" rx="15" ry="11"/><ellipse cx="580" cy="331" rx="15" ry="11"/>
+    <ellipse cx="167" cy="378" rx="16" ry="11"/><ellipse cx="208" cy="376" rx="16" ry="11"/><ellipse cx="249" cy="374" rx="16" ry="11"/><ellipse cx="290" cy="372" rx="16" ry="11"/><ellipse cx="331" cy="370" rx="16" ry="11"/><ellipse cx="372" cy="368" rx="16" ry="11"/><ellipse cx="413" cy="366" rx="16" ry="11"/><ellipse cx="454" cy="364" rx="16" ry="11"/><ellipse cx="495" cy="362" rx="16" ry="11"/><ellipse cx="536" cy="360" rx="16" ry="11"/>
+  </g>
+  <g fill="#ad402b" stroke="#20231e" stroke-width="3">
+    <ellipse cx="124" cy="352" rx="16" ry="11"/><ellipse cx="565" cy="357" rx="16" ry="11"/><ellipse cx="189" cy="399" rx="19" ry="12"/><ellipse cx="522" cy="388" rx="18" ry="12"/>
+  </g>
+  <path d="M241 397L467 388L499 399L482 413L233 418L208 407Z" fill="#eee8d8" stroke="#20231e" stroke-width="4"/>
+  <path d="M253 405L466 397" stroke="#20231e" stroke-width="2" opacity=".5"/>
+
+  <!-- ribbon spools, selector and return lever -->
+  <circle cx="257" cy="283" r="24" fill="#20231e" stroke="#20231e" stroke-width="4"/>
+  <circle cx="257" cy="283" r="13" fill="#ad402b" stroke="#eee8d8" stroke-width="3"/>
+  <circle cx="482" cy="270" r="22" fill="#20231e" stroke="#20231e" stroke-width="4"/>
+  <circle cx="482" cy="270" r="11" fill="#ad402b" stroke="#eee8d8" stroke-width="3"/>
+  <path d="M257 274L257 292M248 283L266 283M482 263L482 277M475 270L489 270" stroke="#eee8d8" stroke-width="2" opacity=".8"/>
+  <path d="M602 235Q650 222 661 252Q671 281 650 310" fill="none" stroke="#20231e" stroke-width="8" stroke-linecap="round"/>
+  <path d="M651 306L667 320" stroke="#ad402b" stroke-width="9" stroke-linecap="round"/>
+  <path d="M650 311L661 321" stroke="#20231e" stroke-width="3" stroke-linecap="round"/>
+  <path d="M600 242L617 239L620 260L603 264Z" fill="#ad402b" stroke="#20231e" stroke-width="3"/>
+
+  <!-- front feet and engraved underside -->
+  <path d="M101 411L144 419L151 476L112 470Z" fill="#20231e" stroke="#20231e" stroke-width="5"/>
+  <path d="M548 424L590 416L607 462L569 477Z" fill="#20231e" stroke="#20231e" stroke-width="5"/>
+  <path d="M118 451L573 453" stroke="#ad402b" stroke-width="4" opacity=".8"/>
+  <path d="M155 437L547 440M169 445L535 448M183 452L521 455" stroke="#eee8d8" stroke-width="1.4" opacity=".4"/>
+  <path d="M88 423Q344 468 624 431" fill="none" stroke="#20231e" stroke-width="9" stroke-linecap="round" opacity=".95"/>
+  <path d="M101 441Q350 480 604 446" fill="none" stroke="#69715f" stroke-width="4" opacity=".85"/>
+
+  <!-- small exposed screws and etched construction lines -->
+  <g fill="#eee8d8" stroke="#20231e" stroke-width="2">
+    <circle cx="127" cy="326" r="5"/><circle cx="596" cy="343" r="5"/><circle cx="132" cy="405" r="5"/><circle cx="577" cy="407" r="5"/>
+  </g>
+  <g stroke="#20231e" stroke-width="1.5" opacity=".4">
+    <path d="M128 333L132 346M588 348L581 360M137 413L149 421M569 414L555 423"/>
+    <path d="M91 331L105 339M85 343L101 349M84 356L99 361"/>
+    <path d="M617 365L629 369M616 377L627 381M614 389L625 392"/>
+  </g>
+</svg>

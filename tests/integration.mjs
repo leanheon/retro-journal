@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 
 // This suite only writes to the isolated loopback development database.
 const origin = 'http://127.0.0.1:5173';
+const password = process.env.BLOG_TEST_PASSWORD;
+if (!password) throw new Error('BLOG_TEST_PASSWORD is required to run integration tests.');
 let cookie = '';
 const ids = [];
 async function request(path, { owner = false, method = 'GET', json, body, headers = {} } = {}) {
@@ -16,8 +18,8 @@ async function data(response, status = 200) {
 try {
  assert.equal((await request('/api/admin')).status, 401);
  assert.equal((await request('/api/posts', {method:'POST',json:{}})).status, 401);
- const login = await request('/signin-with-chatgpt?return_to=/admin');
- assert.equal(login.status,302);
+ const login = await request('/api/auth/login',{method:'POST',json:{password}});
+ assert.equal(login.status,200);
  cookie = login.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
  assert.ok(cookie);
  const admin = await data(await request('/api/admin',{owner:true}));
@@ -67,4 +69,5 @@ try {
  console.log('PASS: owner authentication, CRUD, draft privacy, image upload/privacy, XSS escaping, RSS/sitemap, duplicate validation, cross-origin rejection, backup and safe restore.');
 } finally {
  for (const id of ids) await request(`/api/posts/${id}`,{owner:true,method:'DELETE'});
+ if (cookie) await request('/api/auth/logout',{owner:true,method:'POST'});
 }

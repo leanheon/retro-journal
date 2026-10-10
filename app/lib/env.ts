@@ -3,7 +3,7 @@ import { env as workerEnv } from "cloudflare:workers";
 type BlogEnv = {
   DB?: D1Database;
   BUCKET?: R2Bucket;
-  BLOG_OWNER_EMAIL?: string;
+  BLOG_ADMIN_PASSWORD_HASH?: string;
   BLOG_ORIGIN?: string;
 };
 

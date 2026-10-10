@@ -1,4 +1,4 @@
-import { deletePost, databaseErrorMessage, getPostById, getPosts, updatePost } from "../../../lib/db";
+import { checkCoverImage, deletePost, databaseErrorMessage, getPostById, getPosts, updatePost } from "../../../lib/db";
 import { requireBlogOwner } from "../../../lib/auth";
 import { jsonError, noStoreHeaders, sameOriginError, parseNumericId } from "../../../lib/http";
 import { validatePostInput } from "../../../lib/validation";
@@ -40,6 +40,16 @@ export async function PUT(request: Request, context: RouteContext) {
       const posts = await getPosts({ includeDraft: true });
       if (posts.some((post) => post.id !== id && post.slug === result.value.slug)) {
         return jsonError("이미 사용 중인 slug입니다. 다른 주소를 입력해 주세요.", 409);
+      }
+    }
+
+    if (result.value.coverImage !== undefined) {
+      const coverCheck = await checkCoverImage(result.value.coverImage);
+      if (coverCheck === "missing") {
+        return jsonError("표지 이미지를 찾을 수 없습니다.", 400);
+      }
+      if (coverCheck === "unavailable") {
+        return jsonError("표지 이미지 저장소를 확인할 수 없습니다.", 503);
       }
     }
 

@@ -1,4 +1,4 @@
-import { createPost, databaseErrorMessage, getPublicPosts, getPosts } from "../../lib/db";
+import { checkCoverImage, createPost, databaseErrorMessage, getPublicPosts, getPosts } from "../../lib/db";
 import { requireBlogOwner } from "../../lib/auth";
 import { publicCacheHeaders, jsonError, noStoreHeaders, sameOriginError } from "../../lib/http";
 import { validatePostInput } from "../../lib/validation";
@@ -39,6 +39,14 @@ export async function POST(request: Request) {
       return jsonError("이미 사용 중인 slug입니다. 다른 주소를 입력해 주세요.", 409);
     }
 
+    const coverCheck = await checkCoverImage(data.coverImage);
+    if (coverCheck === "missing") {
+      return jsonError("표지 이미지를 찾을 수 없습니다.", 400);
+    }
+    if (coverCheck === "unavailable") {
+      return jsonError("표지 이미지 저장소를 확인할 수 없습니다.", 503);
+    }
+
     const post = await createPost({
       slug: data.slug,
       title: data.title,
@@ -49,6 +57,9 @@ export async function POST(request: Request) {
       published: data.published ?? false,
       featured: data.featured ?? false,
       cover: data.cover ?? "stripes",
+      coverImage: data.coverImage ?? null,
+      coverTitle: data.coverTitle ?? false,
+      coverTone: data.coverTone ?? "newsprint",
     });
     return Response.json({ post }, { status: 201, headers: noStoreHeaders() });
   } catch (error) {

@@ -11,7 +11,9 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
-import { renderMarkdown } from "../lib/markdown";
+import CoverPicker from "./CoverPicker";
+import NewspaperArticle from "../components/NewspaperArticle";
+import '../posts/article.css';
 
 type CoverStyle = "stripes" | "sun" | "type" | "landscape";
 type Category = "일상" | "생각" | "취향" | "만들기";
@@ -27,6 +29,9 @@ type BlogPost = {
   published: boolean;
   featured: boolean;
   cover: CoverStyle;
+  coverImage: string | null;
+  coverTitle: boolean;
+  coverTone: 'original' | 'newsprint';
   createdAt: string;
   updatedAt: string;
   publishedAt?: string;
@@ -41,7 +46,6 @@ type SiteSettings = {
 
 type AdminUser = {
   displayName: string;
-  email: string;
 };
 
 type AdminClientProps = {
@@ -72,10 +76,10 @@ const COVERS: Array<{ value: CoverStyle; label: string; note: string }> = [
 ];
 
 const EMPTY_SETTINGS: SiteSettings = {
-  title: "김지헌의 기록실",
+  title: "내맘대로 살거야",
   author: "김지헌",
-  description: "생각과 취향, 매일의 작은 만들기를 기록합니다.",
-  bio: "느리게 관찰하고, 오래 남을 문장을 씁니다.",
+  description: "일상, 생각, 좋아하는 것들을 적습니다.",
+  bio: "안녕하세요. 김지헌입니다. 쓰고 싶은 이야기를 여기에 남깁니다.",
 };
 
 function emptyDraft(): DraftPost {
@@ -90,6 +94,10 @@ function emptyDraft(): DraftPost {
     published: false,
     featured: false,
     cover: "stripes",
+    coverImage: null,
+    coverTitle: false,
+    coverTone: 'newsprint',
+    createdAt: new Date().toISOString(),
   };
 }
 
@@ -108,6 +116,9 @@ function normalizePost(value: BlogPost): BlogPost {
     cover: COVERS.some((cover) => cover.value === value.cover)
       ? value.cover
       : "stripes",
+    coverImage: value.coverImage ?? null,
+    coverTitle: value.coverTitle === true,
+    coverTone: value.coverTone === 'original' ? 'original' : 'newsprint',
     createdAt: value.createdAt ?? "",
     updatedAt: value.updatedAt ?? value.createdAt ?? "",
     publishedAt: value.publishedAt,
@@ -127,6 +138,9 @@ function toDraft(post: BlogPost | null): DraftPost {
     published: post.published,
     featured: post.featured,
     cover: post.cover,
+    coverImage: post.coverImage,
+    coverTitle: post.coverTitle,
+    coverTone: post.coverTone,
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
     publishedAt: post.publishedAt,
@@ -145,6 +159,9 @@ function snapshot(value: DraftPost): string {
     published: value.published,
     featured: value.featured,
     cover: value.cover,
+    coverImage: value.coverImage,
+    coverTitle: value.coverTitle,
+    coverTone: value.coverTone,
   });
 }
 
@@ -245,6 +262,9 @@ function parseBackup(value: unknown): ParsedBackup {
       cover: typeof rawPost.cover === "string" && COVERS.some((cover) => cover.value === rawPost.cover)
         ? rawPost.cover as CoverStyle
         : "stripes",
+      coverImage: typeof rawPost.coverImage === "string" ? rawPost.coverImage : null,
+      coverTitle: rawPost.coverTitle === true,
+      coverTone: rawPost.coverTone === 'original' ? 'original' : 'newsprint',
       createdAt: typeof rawPost.createdAt === "string" ? rawPost.createdAt : "",
       updatedAt: typeof rawPost.updatedAt === "string" ? rawPost.updatedAt : "",
       publishedAt: typeof rawPost.publishedAt === "string" ? rawPost.publishedAt : undefined,
@@ -266,6 +286,9 @@ function restorePostPayload(post: BlogPost) {
     published: post.published,
     featured: post.featured,
     cover: post.cover,
+    coverImage: post.coverImage,
+    coverTitle: post.coverTitle,
+    coverTone: post.coverTone,
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
     publishedAt: post.publishedAt ?? null,
@@ -283,13 +306,6 @@ function validateDraft(value: DraftPost): FieldErrors {
   if (!value.excerpt.trim()) errors.excerpt = "글 목록에 보여줄 요약을 입력해 주세요.";
   if (!value.body.trim()) errors.body = "본문을 입력해 주세요.";
   return errors;
-}
-
-function MarkdownPreview({ body }: { body: string }) {
-  if (!body.trim()) {
-    return <p className="admin-preview-empty">본문을 입력하면 여기에서 미리 볼 수 있어요.</p>;
-  }
-  return <div className="admin-markdown-preview">{renderMarkdown(body)}</div>;
 }
 
 function Notice({
@@ -325,8 +341,10 @@ export default function AdminClient({ user }: AdminClientProps) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
   const [editorMode, setEditorMode] = useState<EditorMode>("write");
+  const [previewExpanded, setPreviewExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -343,7 +361,14 @@ export default function AdminClient({ user }: AdminClientProps) {
   const importFileRef = useRef<HTMLInputElement>(null);
   const imageFileRef = useRef<HTMLInputElement>(null);
   const bodyTextAreaRef = useRef<HTMLTextAreaElement>(null);
+  const previewDialogRef = useRef<HTMLDialogElement>(null);
   const saveIntentRef = useRef<SaveIntent>("draft");
+
+  useEffect(() => {
+    const dialog = previewDialogRef.current;
+    if (previewExpanded && dialog && !dialog.open) dialog.showModal();
+    if (!previewExpanded && dialog?.open) dialog.close();
+  }, [previewExpanded]);
 
   const dirty = snapshot(draft) !== savedSnapshot;
   const anyDirty = dirty || settingsDirty;
@@ -461,6 +486,9 @@ export default function AdminClient({ user }: AdminClientProps) {
       published: intent === "publish",
       featured: draft.featured,
       cover: draft.cover,
+      coverImage: draft.coverImage,
+      coverTitle: draft.coverTitle,
+      coverTone: draft.coverTone,
     };
 
     setSaving(true);
@@ -751,12 +779,29 @@ export default function AdminClient({ user }: AdminClientProps) {
     editorFormRef.current?.requestSubmit();
   };
 
+  const handleLogout = async () => {
+    if (anyDirty && !window.confirm("저장하지 않은 변경사항이 있어요. 그래도 로그아웃할까요?")) return;
+
+    setLoggingOut(true);
+    setNotice(null);
+    try {
+      await requestJson<{ ok: boolean }>("/api/auth/logout", { method: "POST" });
+      window.location.assign("/admin");
+    } catch (error: unknown) {
+      setLoggingOut(false);
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "로그아웃하지 못했습니다. 다시 시도해 주세요.",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <main id="main" className="admin-shell admin-loading-shell">
         <div className="admin-loading-card" role="status" aria-live="polite">
-          <span className="admin-eyebrow">OWNER / CONTROL DESK</span>
-          <h1>기록실을 여는 중입니다.</h1>
+          <span className="admin-eyebrow">블로그 관리</span>
+          <h1>관리 화면을 여는 중입니다.</h1>
           <p>저장된 글과 설정을 확인하고 있어요.</p>
           <span className="admin-loading-line" aria-hidden="true" />
         </div>
@@ -768,8 +813,8 @@ export default function AdminClient({ user }: AdminClientProps) {
     return (
       <main id="main" className="admin-shell admin-error-shell">
         <div className="admin-error-card">
-          <span className="admin-eyebrow">OWNER / CONTROL DESK</span>
-          <h1>기록실을 불러오지 못했습니다.</h1>
+          <span className="admin-eyebrow">블로그 관리</span>
+          <h1>관리 화면을 불러오지 못했습니다.</h1>
           <p>{loadError}</p>
           <button className="button button-primary" type="button" onClick={() => {
             setLoading(true);
@@ -793,29 +838,39 @@ export default function AdminClient({ user }: AdminClientProps) {
       <header className="admin-topbar">
         <div className="admin-brand-lockup">
           <Link className="admin-mark" href="/" aria-label="블로그 홈으로 이동">
-            <span aria-hidden="true">KJ</span>
+            <img className="admin-signature-image" src="/images/author-signature.png" alt="" />
           </Link>
           <div>
-            <p className="admin-eyebrow">OWNER / CONTROL DESK</p>
-            <h1>{settings.title || "김지헌의 기록실"}</h1>
+            <p className="admin-eyebrow">블로그 관리</p>
+            <h1>{settings.title || "내맘대로 살거야"}</h1>
           </div>
         </div>
         <div className="admin-topbar-actions">
-          <span className="admin-user-chip" title={user.email}>
-            <span className="admin-user-dot" aria-hidden="true" />
+          <span className="admin-user-chip" title={user.displayName || "김지헌"}>
+            <span className="admin-user-avatar" aria-hidden="true">
+              <img className="admin-signature-image" src="/images/author-signature.png" alt="" />
+            </span>
             {user.displayName || "김지헌"}
           </span>
           <Link className="button button-quiet" href="/" target="_top">
             블로그 보기
           </Link>
+          <button
+            className="button button-quiet"
+            type="button"
+            onClick={() => void handleLogout()}
+            disabled={loggingOut}
+          >
+            {loggingOut ? "로그아웃 중…" : "로그아웃"}
+          </button>
         </div>
       </header>
 
       <div className="admin-body">
         <aside className="admin-sidebar" aria-label="관리 메뉴">
           <div className="admin-sidebar-intro">
-            <p className="admin-sidebar-kicker">MY NOTEBOOK</p>
-            <p className="admin-sidebar-copy">생각을 고르고, 다듬고, 오래 남깁니다.</p>
+            <p className="admin-sidebar-kicker">내 글</p>
+            <p className="admin-sidebar-copy">글을 쓰고, 고치고, 공개합니다.</p>
           </div>
 
           <div className="admin-sidebar-tabs" role="tablist" aria-label="관리 메뉴">
@@ -921,8 +976,7 @@ export default function AdminClient({ user }: AdminClientProps) {
           )}
 
           <div className="admin-sidebar-foot">
-            <span>PRIVATE EDITOR</span>
-            <span>v1.0</span>
+            <span>글 편집</span>
           </div>
         </aside>
 
@@ -937,17 +991,19 @@ export default function AdminClient({ user }: AdminClientProps) {
             <section className="admin-settings-view">
               <div className="admin-view-heading">
                 <div>
-                  <p className="admin-eyebrow">IDENTITY / PROFILE</p>
-                  <h2>블로그의 표정을 정리해 보세요.</h2>
+                  <p className="admin-eyebrow">블로그 설정</p>
+                  <h2>홈에 보이는 정보를 바꿉니다.</h2>
                   <p>홈과 글 목록에 표시되는 소개 문장을 관리합니다.</p>
                 </div>
                 <Link className="button button-quiet" href="/" target="_top">변경사항 확인</Link>
               </div>
               <form className="admin-settings-form" ref={settingsFormRef} onSubmit={handleSettingsSubmit}>
                 <section className="admin-card admin-profile-card">
-                  <div className="admin-card-label">01 / PROFILE</div>
+                  <div className="admin-card-label">01 / 기본 정보</div>
                   <div className="admin-profile-preview">
-                    <span className="admin-profile-avatar" aria-hidden="true">김</span>
+                    <span className="admin-profile-avatar" aria-hidden="true">
+                      <img className="admin-signature-image" src="/images/author-signature.png" alt="" />
+                    </span>
                     <div>
                       <span className="admin-profile-preview-label">현재 이렇게 보여요</span>
                       <strong>{settings.author || "작성자 이름"}</strong>
@@ -983,7 +1039,7 @@ export default function AdminClient({ user }: AdminClientProps) {
                 </section>
                 <section className="admin-card admin-tools-card">
                   <div>
-                    <div className="admin-card-label">02 / TOOLS</div>
+                    <div className="admin-card-label">02 / 백업</div>
                     <h3>기록 보관</h3>
                     <p>전체 글과 설정을 JSON 파일로 내려받아 안전하게 보관하거나, 새 글만 추가할 수 있습니다.</p>
                   </div>
@@ -1011,7 +1067,7 @@ export default function AdminClient({ user }: AdminClientProps) {
             <>
               <div className="admin-editor-topline">
                 <div>
-                  <p className="admin-eyebrow">POST / {draft.id ? draft.slug || "untitled" : "new-entry"}</p>
+                  <p className="admin-eyebrow">글 / {draft.id ? draft.slug || "제목 없음" : "새 글"}</p>
                   <h2>{currentTitle}</h2>
                 </div>
                 <div className="admin-editor-top-actions">
@@ -1028,14 +1084,17 @@ export default function AdminClient({ user }: AdminClientProps) {
                     <section className="admin-card admin-writing-card">
                       <div className="admin-card-header">
                         <div>
-                          <div className="admin-card-label">01 / MANUSCRIPT</div>
-                          <h3>문장을 꺼내 놓는 곳</h3>
+                          <div className="admin-card-label">01 / 본문</div>
+                          <h3>글 작성</h3>
                         </div>
                         <div className="admin-mode-switch" role="tablist" aria-label="본문 보기 방식">
                           <button type="button" role="tab" aria-selected={editorMode === "write"} className={editorMode === "write" ? "admin-mode-active" : ""} onClick={() => setEditorMode("write")}>쓰기</button>
                           <button type="button" role="tab" aria-selected={editorMode === "preview"} className={editorMode === "preview" ? "admin-mode-active" : ""} onClick={() => setEditorMode("preview")}>미리보기</button>
                         </div>
                       </div>
+                      <button className="admin-wide-preview-button" type="button" onClick={() => setPreviewExpanded(true)}>
+                        넓게 미리보기 <span aria-hidden="true">↗</span>
+                      </button>
                       {editorMode === "write" ? (
                         <>
                           <label className={`field admin-title-field ${fieldErrors.title ? "admin-field-invalid" : ""}`}>
@@ -1092,22 +1151,14 @@ export default function AdminClient({ user }: AdminClientProps) {
                           </div>
                         </>
                       ) : (
-                        <div className="admin-preview-panel">
-                          <div className="admin-preview-meta">
-                            <span>{draft.category}</span>
-                            <span>{draft.title || "제목 없는 글"}</span>
-                          </div>
-                          <h3 className="admin-preview-title">{draft.title || "제목 없는 글"}</h3>
-                          <p className="admin-preview-excerpt">{draft.excerpt || "요약이 아직 없습니다."}</p>
-                          <MarkdownPreview body={draft.body} />
-                        </div>
+                        <div className="admin-preview-panel article-page newspaper-preview"><NewspaperArticle post={draft} settings={settings} preview /></div>
                       )}
                     </section>
                   </div>
 
                   <aside className="admin-editor-side-column">
                     <section className="admin-card admin-publish-card">
-                      <div className="admin-card-label">02 / ADDRESS</div>
+                      <div className="admin-card-label">02 / 글 설정</div>
                       <label className={`field ${fieldErrors.slug ? "admin-field-invalid" : ""}`}>
                         <span>글 주소 <b aria-hidden="true">*</b></span>
                         <div className="admin-slug-input">
@@ -1156,40 +1207,12 @@ export default function AdminClient({ user }: AdminClientProps) {
                       </button>
                     </section>
 
-                    <section className="admin-card admin-cover-card">
-                      <div className="admin-card-header admin-card-header-compact">
-                        <div>
-                          <div className="admin-card-label">03 / COVER</div>
-                          <h3>표지의 분위기</h3>
-                        </div>
-                        <span className="admin-card-index">{COVERS.findIndex((cover) => cover.value === draft.cover) + 1} / 04</span>
-                      </div>
-                      <div className={`admin-cover-preview admin-cover-preview-${draft.cover}`} aria-hidden="true">
-                        <span>{draft.category}</span>
-                        <strong>{draft.title || "YOUR NOTE"}</strong>
-                        <i />
-                      </div>
-                      <div className="admin-cover-options" role="radiogroup" aria-label="표지 선택">
-                        {COVERS.map((cover) => (
-                          <button
-                            key={cover.value}
-                            type="button"
-                            role="radio"
-                            aria-checked={draft.cover === cover.value}
-                            className={`admin-cover-option admin-cover-option-${cover.value} ${draft.cover === cover.value ? "admin-cover-option-active" : ""}`}
-                            onClick={() => updateDraft("cover", cover.value)}
-                          >
-                            <span className="admin-cover-swatch" aria-hidden="true" />
-                            <span>{cover.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </section>
+                    <CoverPicker key={draft.id ?? 'new'} title={draft.title} body={draft.body} cover={draft.cover} coverImage={draft.coverImage} coverTitle={draft.coverTitle} coverTone={draft.coverTone} onChange={value => { setDraft(current => ({ ...current, ...value })); setNotice(null); }} />
 
                     <section className="admin-card admin-note-card">
                       <span className="admin-note-quote" aria-hidden="true">“</span>
-                      <p>좋은 기록은 완성된 사람이 아니라, 다시 열어 본 사람이 남깁니다.</p>
-                      <span className="admin-note-signature">— 김지헌의 기록실</span>
+                      <p>바로 공개하지 않아도 됩니다. 초안으로 저장하고 이어서 써보세요.</p>
+                      <span className="admin-note-signature">— {settings.title || "내맘대로 살거야"}</span>
                     </section>
                   </aside>
                 </div>
@@ -1198,8 +1221,13 @@ export default function AdminClient({ user }: AdminClientProps) {
           )}
         </section>
       </div>
+      <dialog ref={previewDialogRef} className="admin-reading-preview" aria-label="글 전체 미리보기" onClose={() => setPreviewExpanded(false)}>
+        <div className="admin-reading-preview-toolbar">
+          <strong>글 미리보기</strong>
+          <button className="button button-secondary" type="button" onClick={() => previewDialogRef.current?.close()}>닫기</button>
+        </div>
+        {previewExpanded ? <div className="article-page newspaper-preview"><NewspaperArticle post={draft} settings={settings} preview /></div> : null}
+      </dialog>
     </main>
   );
 }
-
-

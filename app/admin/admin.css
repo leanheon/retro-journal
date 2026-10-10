@@ -49,6 +49,14 @@
   font-size: 16px;
 }
 
+.admin-signature-image {
+  display: block;
+  width: 86%;
+  height: 86%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
 .admin-gate-mark-denied {
   background: var(--rust);
   border-color: var(--rust);
@@ -153,7 +161,6 @@
   font-size: 11px;
 }
 
-.admin-user-dot,
 .admin-post-status > span {
   display: inline-block;
   width: 7px;
@@ -162,8 +169,15 @@
   background: var(--sage);
 }
 
-.admin-user-dot {
-  background: var(--rust);
+.admin-user-avatar {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--admin-card);
 }
 
 .admin-topbar .button {
@@ -692,7 +706,7 @@
 
 .admin-body-field textarea {
   min-height: 390px;
-  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  font-family: var(--body);
   line-height: 1.9;
 }
 
@@ -1116,10 +1130,9 @@
   height: 48px;
   place-items: center;
   border-radius: 50%;
-  background: var(--rust);
-  color: var(--paper);
-  font-family: var(--display);
-  font-size: 22px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  background: var(--admin-card-deep);
 }
 
 .admin-profile-preview > div {
@@ -1495,3 +1508,11 @@
 /* Keep hidden file controls out of the editor's layout. */
 .admin-shell input.admin-file-input{position:absolute;width:1px!important;max-width:1px!important;height:1px!important;padding:0!important;border:0!important;margin:0!important;clip:rect(0,0,0,0);clip-path:inset(50%);overflow:hidden}
 @media(min-width:1101px){.admin-body{padding-inline:40px}}
+/* Full-width reading proof, using the same article as the public page. */
+.admin-wide-preview-button{display:block;margin:0 0 18px auto;padding:7px 0;border:0;border-bottom:1px solid currentColor;background:none;color:var(--rust);font:12px/1.5 var(--body);cursor:pointer}
+.admin-reading-preview{width:min(1100px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 32px);padding:0;border:3px double var(--ink);background:var(--paper);color:var(--ink);overflow:auto}
+.admin-reading-preview::backdrop{background:rgba(20,21,17,.6)}
+.admin-reading-preview-toolbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 24px;background:var(--paper);border-bottom:1px solid var(--ink)}
+.admin-reading-preview-toolbar strong{font:14px var(--body)}
+.admin-reading-preview .article-page.newspaper-preview{padding:24px 40px;border:0}
+@media(max-width:540px){.admin-reading-preview{width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}.admin-reading-preview .article-page.newspaper-preview{padding:18px 16px}.admin-reading-preview-toolbar{padding:10px 16px}}
