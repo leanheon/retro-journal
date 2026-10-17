@@ -44,15 +44,14 @@ export type NewPostRow = typeof posts.$inferInsert;
 export type SettingsRow = typeof settings.$inferSelect;
 export type NewSettingsRow = typeof settings.$inferInsert;
 
-// Only token digests are stored; password hashes live in server secrets.
+// Only token digests are stored; credentials contain a salted password hash.
 export const adminSessions = sqliteTable("admin_sessions", {
   tokenHash: text("token_hash").primaryKey(),
   passwordVersion: text("password_version").notNull(),
   expiresAt: integer("expires_at").notNull(),
 });
 
-export const adminLoginAttempts = sqliteTable("admin_login_attempts", {
-  clientKey: text("client_key").primaryKey(),
-  windowStarted: integer("window_started").notNull(),
-  attempts: integer("attempts").notNull(),
+export const adminCredentials = sqliteTable("admin_credentials", {
+  id: integer("id").primaryKey(),
+  passwordHash: text("password_hash").notNull(),
 });

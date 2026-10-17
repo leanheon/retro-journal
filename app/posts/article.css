@@ -995,6 +995,7 @@
 }
 
 /* A small engraved colophon instead of a diagram above the article. */
+.article-body hr{border:0;border-top:3px double var(--line);margin:2em 0}
 .article-page .article-cover::after,
 .article-page .article-cover-cross{display:none}
 .article-page .article-cover-engraving{position:absolute;right:10%;top:-20px;height:160px;width:235px;object-fit:contain;filter:grayscale(1) sepia(.3);mix-blend-mode:multiply;opacity:.75}

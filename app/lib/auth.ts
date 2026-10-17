@@ -10,9 +10,21 @@ export type OwnerCheck =
 
 const HASH_PATTERN = /^pbkdf2-sha256\$100000\$([a-f0-9]{32})\$([a-f0-9]{64})$/;
 const encoder = new TextEncoder();
+// Server-only bootstrap hash. The database takes precedence after initialization.
+const DEFAULT_PASSWORD_HASH = "pbkdf2-sha256$100000$2a5a9a5945f76a22e6c2f892233848d7$e4142b6efb8cd7213e22e166ff6422578192f375af94ddad89a5426b48395b31";
 
 export function passwordIsConfigured(): boolean {
-  return Boolean(env.DB && HASH_PATTERN.test(env.BLOG_ADMIN_PASSWORD_HASH ?? ""));
+  return Boolean(env.DB);
+}
+
+export async function getAdminPasswordHash(): Promise<string> {
+  if (!env.DB) throw new Error("Admin database is unavailable.");
+  const bootstrap = HASH_PATTERN.test(env.BLOG_ADMIN_PASSWORD_HASH ?? "")
+    ? env.BLOG_ADMIN_PASSWORD_HASH! : DEFAULT_PASSWORD_HASH;
+  await env.DB.prepare("INSERT INTO admin_credentials (id, password_hash) VALUES (1, ?) ON CONFLICT(id) DO NOTHING").bind(bootstrap).run();
+  const row = await env.DB.prepare("SELECT password_hash FROM admin_credentials WHERE id = 1").first<{ password_hash: string }>();
+  if (!row || !HASH_PATTERN.test(row.password_hash)) throw new Error("Invalid admin credential.");
+  return row.password_hash;
 }
 
 export function hex(bytes: Uint8Array): string {
@@ -23,8 +35,8 @@ export async function sha256(value: string): Promise<string> {
   return hex(new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(value))));
 }
 
-export async function verifyAdminPassword(password: string): Promise<boolean> {
-  const match = HASH_PATTERN.exec(env.BLOG_ADMIN_PASSWORD_HASH ?? "");
+export async function verifyAdminPassword(password: string, hash?: string): Promise<boolean> {
+  const match = HASH_PATTERN.exec(hash ?? await getAdminPasswordHash());
   // HMAC keys shorter than its block size can otherwise treat trailing NULs
   // as equivalent padding. Passwords must be printable, exact input.
   if (!match || password.length > 256 || /[\u0000-\u001f\u007f]/.test(password)) return false;
@@ -40,8 +52,15 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
   return difference === 0;
 }
 
-export async function passwordVersion(): Promise<string> {
-  return sha256(env.BLOG_ADMIN_PASSWORD_HASH ?? "");
+export async function hashAdminPassword(password: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]);
+  const derived = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: 100000 }, key, 256);
+  return `pbkdf2-sha256$100000$${hex(salt)}$${hex(new Uint8Array(derived))}`;
+}
+
+export async function passwordVersion(hash?: string): Promise<string> {
+  return sha256(hash ?? await getAdminPasswordHash());
 }
 
 export async function getAdminUser(): Promise<AdminUser | null> {

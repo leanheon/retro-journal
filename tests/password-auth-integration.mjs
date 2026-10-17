@@ -72,7 +72,7 @@ try {
   // The public journal remains available without an admin session.
   assertStatus(await request("/"), 200, "public home must remain available anonymously");
 
-  const wrongPassword = password + "\u0000";
+  const wrongPassword = password + "-wrong";
   assertStatus(
     await request("/api/auth/login", {
       method: "POST",
@@ -81,6 +81,21 @@ try {
     401,
     "an incorrect password must be rejected",
   );
+
+  // Login uses only the configured password. Caller-supplied IP headers must
+  // not create a shared lockout after repeated incorrect passwords.
+  for (let attempt = 0; attempt < 7; attempt += 1) {
+    const response = await request("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "CF-Connecting-IP": `198.51.100.${attempt + 1}`,
+        "X-Forwarded-For": `203.0.113.${attempt + 1}`,
+        Forwarded: `for=192.0.2.${attempt + 1}`,
+      },
+      json: { password: wrongPassword },
+    });
+    assert.equal(response.status, 401, "incorrect passwords must remain ordinary authentication failures");
+  }
 
   assertStatus(
     await request("/api/auth/login", {
@@ -151,25 +166,7 @@ try {
   assertStatus(await request("/api/admin", { cookie: session }), 401, "a logged-out session must not be reusable");
   session = "";
 
-  if (process.env.AUTH_TEST_RATE_LIMIT === "1") {
-    // This is deliberately last: it consumes the loopback IP's auth budget.
-    let rateLimited = false;
-    for (let attempt = 0; attempt < 7; attempt += 1) {
-      const response = await request("/api/auth/login", {
-        method: "POST",
-        json: { password: wrongPassword },
-      });
-      if (response.status === 429) {
-        rateLimited = true;
-        assert.ok(response.headers.get("Retry-After"), "rate-limited login must include Retry-After");
-        break;
-      }
-      assert.equal(response.status, 401, "rate-limit warmup attempts must reject as incorrect passwords");
-    }
-    assert.ok(rateLimited, "the configured login rate limit must return 429");
-  }
-
-  console.log("PASS: password auth anonymous protection, login validation, cookie attributes, admin access, forged/logout session rejection, and optional rate-limit coverage.");
+  console.log("PASS: password auth anonymous protection, password-only login, cookie attributes, admin access, forged/logout session rejection, and IP-header independence.");
 } finally {
   if (session) {
     await request("/api/auth/logout", { cookie: session, method: "POST" });

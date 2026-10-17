@@ -1110,6 +1110,10 @@
   gap: 18px;
 }
 
+.admin-write-fields[hidden] {
+  display: none;
+}
+
 .admin-profile-card {
   display: flex;
   flex-direction: column;
@@ -1219,6 +1223,73 @@
   margin: 0 !important;
   color: var(--muted);
   font-size: 10px !important;
+}
+
+.admin-password-form {
+  margin-top: 18px;
+}
+
+.admin-password-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-password-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.admin-password-heading h3 {
+  margin-top: 0;
+}
+
+.admin-password-heading p {
+  max-width: 560px;
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.75;
+}
+
+.admin-password-mark {
+  flex: 0 0 auto;
+  border-block: 1px solid var(--line);
+  padding: 6px 0;
+  color: var(--rust);
+  font: 10px/1 'Courier New', monospace;
+  letter-spacing: 1px;
+}
+
+.admin-password-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-password-note,
+.admin-password-status {
+  margin: -4px 0 0;
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.admin-password-note {
+  color: var(--muted);
+}
+
+.admin-password-status-error {
+  color: var(--rust);
+}
+
+.admin-password-status-success {
+  color: var(--green);
+}
+
+.admin-password-actions {
+  margin-top: -2px;
 }
 
 .admin-form-actions .button {
@@ -1417,6 +1488,7 @@
   }
 
   .admin-form-grid-two,
+  .admin-password-fields,
   .admin-editor-side-column,
   .admin-tools-card {
     grid-template-columns: 1fr;

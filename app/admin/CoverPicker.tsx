@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import PostCover from '../components/PostCover';
+import ImageEditorDialog from './ImageEditorDialog';
+import { uploadPhoto } from './ImageTools';
 import './cover-picker.css';
 
 type CoverStyle = 'stripes' | 'sun' | 'type' | 'landscape';
@@ -29,6 +31,7 @@ export default function CoverPicker({ title, body, cover, coverImage, coverTitle
   const [uploading, setUploading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
+  const [editingCover, setEditingCover] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
@@ -76,6 +79,7 @@ export default function CoverPicker({ title, body, cover, coverImage, coverTitle
     <div className="cover-picker-actions">
       <button type="button" className="button button-secondary" onClick={() => { setOpen(!open); if (!open && !loaded && !loading) void loadImages(); }} aria-expanded={open}>{open ? '사진 목록 접기' : '올린 사진에서 고르기'}</button>
       <button type="button" className="button button-secondary" disabled={uploading} onClick={() => fileRef.current?.click()}>{uploading ? '올리는 중…' : '표지 사진 올리기'}</button>
+      {coverImage && <button type="button" className="button button-quiet" disabled={uploading} onClick={() => setEditingCover(coverImage)}>표지 사진 편집</button>}
       <input ref={fileRef} className="admin-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="표지 사진 업로드" onChange={upload} />
     </div>
     {error && <p className="cover-picker-error" role="alert">{error}</p>}
@@ -93,5 +97,12 @@ export default function CoverPicker({ title, body, cover, coverImage, coverTitle
       {styles.map(style => <button key={style.value} type="button" aria-pressed={!coverImage && cover === style.value} className={`admin-cover-option admin-cover-option-${style.value} ${!coverImage && cover === style.value ? 'admin-cover-option-active' : ''}`} onClick={() => onChange({ cover: style.value, coverImage: null })}><span className="admin-cover-swatch" aria-hidden="true" /><span>{style.label}</span></button>)}
     </div>
     <p className="cover-picker-help">흑백 효과는 원본 사진을 바꾸지 않습니다. 글을 저장하면 표지 설정이 반영됩니다.</p>
+    {editingCover && <ImageEditorDialog source={editingCover} filename={editingCover.split('/').pop()} onClose={() => setEditingCover(null)} onApply={async file => {
+      const nextUrl = await uploadPhoto(file);
+      if (!alive.current) return;
+      setImages(previous => [{ url: nextUrl }, ...previous]);
+      onChange({ coverImage: nextUrl });
+      setEditingCover(null);
+    }} />}
   </section>;
 }

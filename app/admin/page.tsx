@@ -5,6 +5,7 @@ import AdminClient from "./AdminClient";
 import PasswordLogin from "./PasswordLogin";
 import "./admin.css";
 import "./password-auth.css";
+import "./writing-editor.css";
 
 export const dynamic = "force-dynamic";
 

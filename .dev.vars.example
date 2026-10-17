@@ -1,5 +1,5 @@
 # Local-only values. Hosted values are managed through Sites environment settings.
-# Generate locally with: node scripts/set-admin-password.mjs
-# Configure the hosted hash separately as a Sites secret. Never commit its value.
+# Optional first-run bootstrap only. Existing D1 credentials take precedence.
+# Change the password in 마이페이지; use scripts/set-admin-password.mjs for local recovery.
 BLOG_ADMIN_PASSWORD_HASH=""
 BLOG_ORIGIN="http://127.0.0.1:5173"

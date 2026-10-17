@@ -22,6 +22,20 @@
       "when": 1791599241635,
       "tag": "0002_chunky_black_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792247306493,
+      "tag": "0003_password_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792247308132,
+      "tag": "0004_remove_ip_attempts",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,8 @@ import {
 } from "react";
 import Link from "next/link";
 import CoverPicker from "./CoverPicker";
+import WritingEditor, { type WritingEditorHandle } from "./WritingEditor";
+import ImageTools, { type ImageToolsHandle } from "./ImageTools";
 import NewspaperArticle from "../components/NewspaperArticle";
 import '../posts/article.css';
 
@@ -66,6 +68,16 @@ type FieldErrors = Partial<Record<"title" | "slug" | "excerpt" | "body", string>
 type AdminTab = "posts" | "settings";
 type EditorMode = "write" | "preview";
 type SaveIntent = "draft" | "publish";
+
+type PasswordForm = {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+};
+
+type PasswordStatus =
+  | { tone: "error" | "success"; text: string }
+  | null;
 
 const CATEGORIES: Category[] = ["일상", "생각", "취향", "만들기"];
 const COVERS: Array<{ value: CoverStyle; label: string; note: string }> = [
@@ -346,10 +358,17 @@ export default function AdminClient({ user }: AdminClientProps) {
   const [saving, setSaving] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [passwordForm, setPasswordForm] = useState<PasswordForm>({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordStatus, setPasswordStatus] = useState<PasswordStatus>(null);
   const [seeding, setSeeding] = useState(false);
   const [importing, setImporting] = useState(false);
   const [savingIntent, setSavingIntent] = useState<SaveIntent | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [editorEpoch, setEditorEpoch] = useState(0);
   const [deleting, setDeleting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [notice, setNotice] = useState<{ tone: "error" | "success" | "info"; text: string } | null>(null);
@@ -359,8 +378,8 @@ export default function AdminClient({ user }: AdminClientProps) {
   const editorFormRef = useRef<HTMLFormElement>(null);
   const settingsFormRef = useRef<HTMLFormElement>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
-  const imageFileRef = useRef<HTMLInputElement>(null);
-  const bodyTextAreaRef = useRef<HTMLTextAreaElement>(null);
+  const writingEditorRef = useRef<WritingEditorHandle>(null);
+  const imageToolsRef = useRef<ImageToolsHandle>(null);
   const previewDialogRef = useRef<HTMLDialogElement>(null);
   const saveIntentRef = useRef<SaveIntent>("draft");
 
@@ -453,6 +472,7 @@ export default function AdminClient({ user }: AdminClientProps) {
     (post: BlogPost | null) => {
       if (!confirmSwitchIfDirty()) return;
       const nextDraft = toDraft(post);
+      setEditorEpoch(value => value + 1);
       setSelectedId(post?.id ?? null);
       setDraft(nextDraft);
       setSavedSnapshot(snapshot(nextDraft));
@@ -617,6 +637,59 @@ export default function AdminClient({ user }: AdminClientProps) {
     }
   };
 
+  const handlePasswordChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    if (name !== "currentPassword" && name !== "newPassword" && name !== "confirmPassword") return;
+    setPasswordForm((current) => ({ ...current, [name]: value }));
+    setPasswordStatus(null);
+  };
+
+  const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (passwordSaving) return;
+    const { currentPassword, newPassword, confirmPassword } = passwordForm;
+    const hasControlCharacters = /[\u0000-\u001f\u007f]/u;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordStatus({ tone: "error", text: "현재 비밀번호와 새 비밀번호를 모두 입력해 주세요." });
+      return;
+    }
+    if (hasControlCharacters.test(currentPassword) || currentPassword.length > 256) {
+      setPasswordStatus({ tone: "error", text: "현재 비밀번호는 제어 문자를 제외한 256자 이내로 입력해 주세요." });
+      return;
+    }
+    if (hasControlCharacters.test(newPassword) || newPassword.length < 8 || newPassword.length > 256) {
+      setPasswordStatus({ tone: "error", text: "새 비밀번호는 공백을 포함한 인쇄 가능한 문자로 8~256자여야 합니다." });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordStatus({ tone: "error", text: "새 비밀번호가 서로 다릅니다." });
+      return;
+    }
+    if (currentPassword === newPassword) {
+      setPasswordStatus({ tone: "error", text: "현재 비밀번호와 다른 새 비밀번호를 입력해 주세요." });
+      return;
+    }
+
+    setPasswordSaving(true);
+    setPasswordStatus(null);
+    try {
+      await requestJson<{ ok: boolean }>("/api/auth/password", {
+        method: "POST",
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordStatus({ tone: "success", text: "비밀번호를 변경했습니다. 다른 기기의 로그인은 종료됩니다." });
+    } catch (error: unknown) {
+      setPasswordStatus({
+        tone: "error",
+        text: error instanceof Error ? error.message : "비밀번호를 변경하지 못했습니다.",
+      });
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
   const handleSeed = async () => {
     if (posts.length) return;
     setSeeding(true);
@@ -702,72 +775,20 @@ export default function AdminClient({ user }: AdminClientProps) {
     }
   };
 
-  const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    if (file.size > 8 * 1024 * 1024) {
-      setNotice({ tone: "error", text: "사진은 8MB 이하로 올려 주세요." });
-      return;
-    }
-    const acceptedTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
-    if (!acceptedTypes.has(file.type)) {
-      setNotice({ tone: "error", text: "PNG, JPEG, WebP, GIF 사진만 올릴 수 있어요." });
-      return;
-    }
-
-    const bodyBeforeUpload = draft.body;
-    const cursorPosition = bodyTextAreaRef.current?.selectionStart ?? bodyBeforeUpload.length;
-    setUploading(true);
+  const insertImageMarkdown = (markdown: string) => {
+    if (writingEditorRef.current) writingEditorRef.current.insertText(`\n\n${markdown}\n\n`);
+    else setDraft(current => ({ ...current, body: `${current.body}\n\n${markdown}\n\n` }));
     setNotice(null);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-        cache: "no-store",
-      });
-      const contentType = response.headers.get("content-type") ?? "";
-      const payload: unknown = contentType.includes("application/json")
-        ? await response.json()
-        : await response.text();
-      if (!response.ok) {
-        const message = isRecord(payload) && typeof payload.error === "string"
-          ? payload.error
-          : "사진을 올리지 못했습니다.";
-        throw new Error(message);
-      }
-      if (!isRecord(payload) || typeof payload.url !== "string" || !payload.url.startsWith("/")) {
-        throw new Error("사진 주소를 확인하지 못했습니다.");
-      }
+  };
 
-      const alt = file.name
-        .replace(/\.[^/.]+$/u, "")
-        .replace(/[\-_]+/gu, " ")
-        .trim()
-        .slice(0, 80) || "사진";
-      const imageMarkdown = `![${alt}](${payload.url})`;
-      setDraft((current) => {
-        const insertionPosition = current.body === bodyBeforeUpload
-          ? cursorPosition
-          : current.body.length;
-        const before = current.body.slice(0, insertionPosition).replace(/\s*$/u, "");
-        const after = current.body.slice(insertionPosition).replace(/^\s*/u, "");
-        const separatorBefore = before ? `${before}\n\n` : "";
-        const separatorAfter = after ? `\n\n${after}` : "";
-        return { ...current, body: `${separatorBefore}${imageMarkdown}${separatorAfter}` };
-      });
-      setNotice({ tone: "success", text: "사진을 올리고 본문에 삽입했습니다." });
-      requestAnimationFrame(() => bodyTextAreaRef.current?.focus());
-    } catch (error: unknown) {
-      setNotice({
-        tone: "error",
-        text: error instanceof Error ? error.message : "사진을 올리지 못했습니다.",
-      });
-    } finally {
-      setUploading(false);
-    }
+  const replaceImage = (previous: string, next: string, description?: string) => {
+    setDraft(current => ({
+      ...current,
+      body: current.body.replace(/(!\[[^\]\n]*\]\()([^\s)]+)(\))/gu,
+        (match, before: string, url: string, after: string) => url === previous ? (description ? `![${description}](` : before) + next + after : match),
+      coverImage: current.coverImage === previous ? next : current.coverImage,
+    }));
+    setNotice(null);
   };
 
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -897,7 +918,7 @@ export default function AdminClient({ user }: AdminClientProps) {
                 setTab("settings");
               }}
             >
-              <span>소개와 설정</span>
+              <span>마이페이지</span>
               <span aria-hidden="true">↗</span>
             </button>
           </div>
@@ -971,7 +992,7 @@ export default function AdminClient({ user }: AdminClientProps) {
           ) : (
             <div className="admin-sidebar-note">
               <span className="admin-sidebar-note-mark" aria-hidden="true">◎</span>
-              <p>사이트에 표시되는 이름과 소개를 정리해 두세요.</p>
+              <p>사이트 소개와 편집실 비밀번호를 정리해 두세요.</p>
             </div>
           )}
 
@@ -980,7 +1001,7 @@ export default function AdminClient({ user }: AdminClientProps) {
           </div>
         </aside>
 
-        <section className="admin-workspace" aria-label={tab === "posts" ? "기록 편집" : "블로그 설정"}>
+        <section className="admin-workspace" aria-label={tab === "posts" ? "기록 편집" : "마이페이지"}>
           {notice ? (
             <div className="admin-notice-wrap">
               <Notice tone={notice.tone}>{notice.text}</Notice>
@@ -991,9 +1012,9 @@ export default function AdminClient({ user }: AdminClientProps) {
             <section className="admin-settings-view">
               <div className="admin-view-heading">
                 <div>
-                  <p className="admin-eyebrow">블로그 설정</p>
-                  <h2>홈에 보이는 정보를 바꿉니다.</h2>
-                  <p>홈과 글 목록에 표시되는 소개 문장을 관리합니다.</p>
+                  <p className="admin-eyebrow">마이페이지</p>
+                  <h2>내 블로그와 계정을 정리합니다.</h2>
+                  <p>홈에 보이는 소개와 편집실 비밀번호를 관리합니다.</p>
                 </div>
                 <Link className="button button-quiet" href="/" target="_top">변경사항 확인</Link>
               </div>
@@ -1062,6 +1083,72 @@ export default function AdminClient({ user }: AdminClientProps) {
                   <p className="admin-tools-note">글과 설정을 JSON으로 백업합니다. 사진 원본은 포함되지 않습니다. 복원 시 기존 글은 보존되고, 블로그 설정은 백업 값으로 변경됩니다.</p>
                 </section>
               </form>
+              <form className="admin-password-form" onSubmit={handlePasswordSubmit} noValidate>
+                <section className="admin-card admin-password-card">
+                  <div className="admin-card-label">03 / 편집실 비밀번호</div>
+                  <div className="admin-password-heading">
+                    <div>
+                      <h3>비밀번호 변경</h3>
+                      <p>이 블로그 편집실에 들어올 때 사용할 비밀번호를 정합니다.</p>
+                    </div>
+                    <span className="admin-password-mark" aria-hidden="true">KEY</span>
+                  </div>
+                  <div className="admin-password-fields">
+                    <label className="field">
+                      <span>현재 비밀번호</span>
+                      <input
+                        name="currentPassword"
+                        type="password"
+                        value={passwordForm.currentPassword}
+                        onChange={handlePasswordChange}
+                        autoComplete="current-password"
+                        maxLength={256}
+                        disabled={passwordSaving}
+                        required
+                      />
+                    </label>
+                    <label className="field">
+                      <span>새 비밀번호</span>
+                      <input
+                        name="newPassword"
+                        type="password"
+                        value={passwordForm.newPassword}
+                        onChange={handlePasswordChange}
+                        autoComplete="new-password"
+                        minLength={8}
+                        maxLength={256}
+                        disabled={passwordSaving}
+                        required
+                      />
+                    </label>
+                    <label className="field">
+                      <span>새 비밀번호 확인</span>
+                      <input
+                        name="confirmPassword"
+                        type="password"
+                        value={passwordForm.confirmPassword}
+                        onChange={handlePasswordChange}
+                        autoComplete="new-password"
+                        minLength={8}
+                        maxLength={256}
+                        disabled={passwordSaving}
+                        required
+                      />
+                    </label>
+                  </div>
+                  <p className="admin-password-note">8~256자의 인쇄 가능한 문자로 입력해 주세요. 비밀번호를 바꾸면 다른 기기의 로그인은 종료됩니다.</p>
+                  {passwordStatus ? (
+                    <p className={`admin-password-status admin-password-status-${passwordStatus.tone}`} role={passwordStatus.tone === "error" ? "alert" : "status"}>
+                      {passwordStatus.text}
+                    </p>
+                  ) : null}
+                  <div className="admin-form-actions admin-password-actions">
+                    <button className="button button-primary" type="submit" disabled={passwordSaving}>
+                      {passwordSaving ? "변경 중…" : "비밀번호 변경"}
+                    </button>
+                  </div>
+                </section>
+              </form>
             </section>
           ) : (
             <>
@@ -1095,8 +1182,7 @@ export default function AdminClient({ user }: AdminClientProps) {
                       <button className="admin-wide-preview-button" type="button" onClick={() => setPreviewExpanded(true)}>
                         넓게 미리보기 <span aria-hidden="true">↗</span>
                       </button>
-                      {editorMode === "write" ? (
-                        <>
+                      <div className="admin-write-fields" hidden={editorMode !== "write"}>
                           <label className={`field admin-title-field ${fieldErrors.title ? "admin-field-invalid" : ""}`}>
                             <span>제목 <b aria-hidden="true">*</b></span>
                             <input
@@ -1122,37 +1208,29 @@ export default function AdminClient({ user }: AdminClientProps) {
                           </label>
                           <div className={`field admin-body-field ${fieldErrors.body ? "admin-field-invalid" : ""}`}>
                             <label htmlFor="post-body">본문 <b aria-hidden="true">*</b></label>
-                            <div className="admin-body-toolbar">
-                              <span className="admin-upload-note">사진은 8MB 이하의 PNG, JPEG, WebP, GIF</span>
-                              <button className="button button-secondary admin-upload-button" type="button" onClick={() => imageFileRef.current?.click()} disabled={uploading}>
-                                {uploading ? "사진 올리는 중…" : "사진 넣기"} <span aria-hidden="true">↗</span>
-                              </button>
-                              <input
-                                ref={imageFileRef}
-                                className="admin-file-input"
-                                type="file"
-                                accept="image/png,image/jpeg,image/webp,image/gif"
-                                onChange={handleImageUpload}
-                                aria-label="본문에 삽입할 사진 선택"
-                              />
-                            </div>
-                            <textarea
-                              id="post-body"
-                              ref={bodyTextAreaRef}
-                              value={draft.body}
-                              onChange={(event) => updateDraft("body", event.target.value)}
-                              placeholder={"마크다운으로 기록해 보세요.\n\n## 작은 제목\n\n생각을 한 줄씩 꺼내 놓습니다."}
-                              rows={18}
-                              aria-invalid={Boolean(fieldErrors.body)}
-                              aria-describedby={fieldErrors.body ? "post-body-error" : "post-body-hint"}
+                            <ImageTools
+                              key={`photos-${draft.id ?? 'new'}-${editorEpoch}`}
+                              ref={imageToolsRef}
+                              body={draft.body}
+                              onInsert={insertImageMarkdown}
+                              onReplace={replaceImage}
                             />
-                            <small id="post-body-hint">마크다운의 제목, 인용문, 목록, 코드 블록을 안전하게 미리 볼 수 있어요.</small>
+                            <WritingEditor
+                              key={`editor-${editorEpoch}`}
+                              ref={writingEditorRef}
+                              id="post-body"
+                              value={draft.body}
+                              onChange={value => updateDraft("body", value)}
+                              onFiles={files => imageToolsRef.current?.openFiles(files)}
+                              disabled={saving}
+                              invalid={Boolean(fieldErrors.body)}
+                              describedBy={fieldErrors.body ? "post-body-error" : "post-body-hint"}
+                            />
+                            <small id="post-body-hint">서식 도구로 문장을 꾸미고, 미리보기에서 신문 지면을 확인하세요. 사진을 붙여넣거나 끌어놓으면 편집할 수 있어요.</small>
                             <FieldError id="post-body-error">{fieldErrors.body}</FieldError>
                           </div>
-                        </>
-                      ) : (
-                        <div className="admin-preview-panel article-page newspaper-preview"><NewspaperArticle post={draft} settings={settings} preview /></div>
-                      )}
+                      </div>
+                      {editorMode === "preview" && <div className="admin-preview-panel article-page newspaper-preview"><NewspaperArticle post={draft} settings={settings} preview /></div>}
                     </section>
                   </div>
 

@@ -1,10 +1,7 @@
 import { cookies } from "next/headers";
-import { ADMIN_COOKIE, SESSION_SECONDS, hex, passwordIsConfigured, passwordVersion, sessionCookie, sha256, verifyAdminPassword } from "../../../lib/auth";
+import { ADMIN_COOKIE, SESSION_SECONDS, getAdminPasswordHash, hex, passwordIsConfigured, passwordVersion, sessionCookie, sha256, verifyAdminPassword } from "../../../lib/auth";
 import { env } from "../../../lib/env";
 import { sameOriginError } from "../../../lib/http";
-
-const WINDOW_SECONDS = 15 * 60;
-const MAX_ATTEMPTS = 5;
 
 function error(message: string, status: number, extraHeaders: Record<string, string> = {}) {
   return Response.json({ error: message }, { status, headers: { "Cache-Control": "no-store", ...extraHeaders } });
@@ -31,28 +28,15 @@ export async function POST(request: Request) {
   }
 
   const now = Math.floor(Date.now() / 1000);
-  // CF supplies this header at the edge. Local preview ignores caller-supplied IP headers.
-  const clientKey = await sha256(local ? "loopback" : (request.headers.get("cf-connecting-ip") ?? "unknown").slice(0, 64));
   try {
-    const attempt = await env.DB!.prepare(`
-      INSERT INTO admin_login_attempts (client_key, window_started, attempts) VALUES (?, ?, 1)
-      ON CONFLICT(client_key) DO UPDATE SET
-        attempts = CASE WHEN window_started <= ? THEN 1 ELSE attempts + 1 END,
-        window_started = CASE WHEN window_started <= ? THEN excluded.window_started ELSE window_started END
-      RETURNING attempts, window_started
-    `).bind(clientKey, now, now - WINDOW_SECONDS, now - WINDOW_SECONDS).first<{ attempts: number; window_started: number }>();
-    if (!attempt || attempt.attempts > MAX_ATTEMPTS) {
-      const remaining = Math.max(1, (attempt?.window_started ?? now) + WINDOW_SECONDS - now);
-      return error("로그인 시도가 많습니다. 잠시 후 다시 시도해 주세요.", 429, { "Retry-After": String(remaining) });
-    }
-    if (!await verifyAdminPassword(input.password)) return error("비밀번호가 맞지 않습니다.", 401);
+    const hash = await getAdminPasswordHash();
+    if (!await verifyAdminPassword(input.password, hash)) return error("비밀번호가 맞지 않습니다.", 401);
 
     const token = hex(crypto.getRandomValues(new Uint8Array(32)));
-    const version = await passwordVersion();
+    const version = await passwordVersion(hash);
     const previousToken = (await cookies()).get(ADMIN_COOKIE)?.value;
     const statements = [
-      env.DB!.prepare("DELETE FROM admin_login_attempts WHERE client_key = ? OR window_started <= ?").bind(clientKey, now - WINDOW_SECONDS),
-      env.DB!.prepare("DELETE FROM admin_sessions WHERE expires_at <= ? OR password_version != ?").bind(now, version),
+      env.DB!.prepare("DELETE FROM admin_sessions WHERE expires_at <= ?").bind(now),
       env.DB!.prepare("INSERT INTO admin_sessions (token_hash, password_version, expires_at) VALUES (?, ?, ?)").bind(await sha256(token), version, now + SESSION_SECONDS),
     ];
     if (previousToken && /^[a-f0-9]{64}$/.test(previousToken)) statements.push(env.DB!.prepare("DELETE FROM admin_sessions WHERE token_hash = ?").bind(await sha256(previousToken)));

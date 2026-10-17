@@ -179,6 +179,14 @@ export function renderMarkdown(source: string): ReactNode {
       continue;
     }
 
+    if (/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/u.test(line)) {
+      flushParagraph();
+      flushList();
+      blocks.push(<hr key={`rule-${blocks.length}`} />);
+      index += 1;
+      continue;
+    }
+
     const unordered = /^[-*]\s+(.+)$/u.exec(line);
     const ordered = /^\d+[.)]\s+(.+)$/u.exec(line);
     if (unordered || ordered) {

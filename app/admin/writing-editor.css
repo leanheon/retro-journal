@@ -1,0 +1,406 @@
+.writing-editor {
+  position: relative;
+  border: 1px solid var(--line);
+  background: #fbf6e9;
+  color: var(--ink);
+  isolation: isolate;
+}
+
+.writing-editor:focus-within {
+  border-color: var(--rust);
+  box-shadow: 0 0 0 2px #a6422c24;
+}
+
+.writing-editor-invalid {
+  border-color: var(--rust);
+}
+
+.writing-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 0;
+  min-height: 44px;
+  padding: 5px 7px;
+  border-bottom: 1px solid var(--line);
+  background: #ebe3d0;
+  overflow-x: visible;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.writing-editor-tool-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  padding: 0 7px;
+  border-right: 1px solid #aaa69380;
+}
+
+.writing-editor-tool-group:first-child {
+  padding-left: 0;
+}
+
+.writing-editor-tool-group-end {
+  margin-left: auto;
+  padding-right: 0;
+  border-right: 0;
+}
+
+.writing-editor-toolbar button,
+.writing-editor-search button,
+.writing-editor-link-popover button {
+  display: inline-flex;
+  min-height: 29px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 3px 7px;
+  font: 10px/1.2 var(--body);
+  white-space: nowrap;
+}
+
+.writing-editor-toolbar button:hover:not(:disabled),
+.writing-editor-search button:hover:not(:disabled),
+.writing-editor-link-popover button:hover:not(:disabled) {
+  border-color: var(--rust);
+  color: var(--rust);
+}
+
+.writing-editor-toolbar button:focus-visible,
+.writing-editor-search button:focus-visible,
+.writing-editor-link-popover button:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: 1px;
+}
+
+.writing-editor-toolbar button:disabled,
+.writing-editor-search button:disabled {
+  cursor: not-allowed;
+}
+
+.writing-editor-toolbar button:first-child,
+.writing-editor-toolbar button:nth-child(2) {
+  font-family: var(--display);
+  font-weight: 900;
+}
+
+.writing-editor-image-button {
+  color: var(--rust) !important;
+}
+
+.writing-editor-file-input {
+  position: absolute;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  margin: -1px !important;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.writing-editor-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+  background: #e8dfca;
+  font-size: 10px;
+}
+
+.writing-editor-search label {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.writing-editor-search input,
+.writing-editor-link-popover input {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: #fbf6e9;
+  color: var(--ink);
+  padding: 5px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.writing-editor-search input {
+  width: min(270px, 40vw);
+}
+
+.writing-editor-search input:focus,
+.writing-editor-link-popover input:focus {
+  border-color: var(--rust);
+  outline: 2px solid #a6422c38;
+  outline-offset: 1px;
+}
+
+.writing-editor-search > span {
+  min-width: 72px;
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.writing-editor-search button {
+  min-height: 25px;
+  padding-inline: 6px;
+}
+
+.writing-editor-search button:last-child {
+  margin-left: auto;
+  color: var(--rust);
+}
+
+.writing-editor-canvas {
+  position: relative;
+  min-height: 390px;
+}
+
+.writing-editor-codemirror {
+  min-height: 390px;
+  background: #fbf6e9;
+}
+
+.writing-editor-codemirror .cm-editor {
+  min-height: 390px;
+  background: #fbf6e9;
+  color: var(--ink);
+  font: 14px/1.9 var(--body);
+}
+
+.writing-editor-codemirror .cm-scroller {
+  overflow: auto;
+  font-family: var(--body);
+}
+
+.writing-editor-codemirror .cm-content {
+  min-height: 354px;
+  padding: 19px 20px 23px;
+  caret-color: var(--rust);
+}
+
+.writing-editor-codemirror .cm-line {
+  padding: 0 4px;
+}
+
+.writing-editor-codemirror .cm-gutters {
+  border-right: 1px solid #aaa69366;
+  background: #f0e8d7;
+  color: #858274;
+  font: 10px/1.9 'Courier New', monospace;
+}
+
+.writing-editor-codemirror .cm-lineNumbers .cm-gutterElement {
+  min-width: 31px;
+  padding: 0 8px 0 5px;
+}
+
+.writing-editor-codemirror .cm-activeLine,
+.writing-editor-codemirror .cm-activeLineGutter {
+  background: #a6422c0b;
+}
+
+.writing-editor-codemirror .cm-selectionBackground,
+.writing-editor-codemirror .cm-content ::selection {
+  background: #a6422c35 !important;
+}
+
+.writing-editor-codemirror .cm-cursor,
+.writing-editor-codemirror .cm-dropCursor {
+  border-left-color: var(--rust);
+}
+
+.writing-editor-codemirror .cm-matchingBracket {
+  background: #d9c79270;
+  outline: 1px solid var(--butter);
+}
+
+.writing-editor-drop-hint {
+  position: absolute;
+  inset: 12px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--rust);
+  background: #ebe3d0e8;
+  color: var(--rust);
+  font-size: 13px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.writing-editor-link-popover {
+  position: absolute;
+  z-index: 4;
+  right: 16px;
+  top: 53px;
+  display: grid;
+  width: min(320px, calc(100% - 32px));
+  gap: 6px;
+  padding: 15px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  box-shadow: 4px 4px 0 #24271f2b;
+}
+
+.writing-editor-link-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 7px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--line);
+}
+
+.writing-editor-link-heading strong {
+  font-size: 13px;
+}
+
+.writing-editor-link-heading span {
+  color: var(--muted);
+  font: 9px 'Courier New', monospace;
+}
+
+.writing-editor-link-popover label {
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.writing-editor-link-error {
+  margin: 1px 0 0;
+  color: var(--rust);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.writing-editor-link-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-top: 4px;
+}
+
+.writing-editor-link-cancel {
+  border-color: var(--line) !important;
+}
+
+.writing-editor-link-apply {
+  border-color: var(--ink) !important;
+  background: var(--ink) !important;
+  color: var(--paper) !important;
+}
+
+.writing-editor-link-apply:hover {
+  border-color: var(--rust) !important;
+  background: var(--rust) !important;
+}
+
+.writing-editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font: 9px/1.4 'Courier New', monospace;
+}
+
+.writing-editor-footer b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.writing-editor-shortcut {
+  margin-left: auto;
+  text-align: right;
+}
+
+@media (max-width: 760px) {
+  .writing-editor-toolbar {
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 3px 0;
+    padding: 6px;
+    overflow-x: visible;
+  }
+
+  .writing-editor-tool-group {
+    padding-inline: 4px;
+  }
+
+  .writing-editor-tool-group-end {
+    margin-left: 0;
+  }
+
+  .writing-editor-search {
+    flex-wrap: wrap;
+  }
+
+  .writing-editor-search input {
+    flex: 1 1 150px;
+    width: auto;
+  }
+
+  .writing-editor-search > span {
+    flex: 1 1 100%;
+    order: 5;
+  }
+
+  .writing-editor-search button:last-child {
+    margin-left: 0;
+  }
+
+  .writing-editor-codemirror .cm-content {
+    padding: 16px 13px 20px;
+  }
+
+  .writing-editor-footer {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: 8px 10px;
+  }
+
+  .writing-editor-shortcut {
+    flex-basis: 100%;
+    margin-left: 0;
+    text-align: left;
+  }
+}
+
+@media (max-width: 430px) {
+  .writing-editor-toolbar button {
+    min-height: 27px;
+    padding-inline: 5px;
+    font-size: 9px;
+  }
+
+  .writing-editor-canvas,
+  .writing-editor-codemirror,
+  .writing-editor-codemirror .cm-editor {
+    min-height: 330px;
+  }
+
+  .writing-editor-codemirror .cm-content {
+    min-height: 294px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .writing-editor * {
+    transition: none !important;
+  }
+}
