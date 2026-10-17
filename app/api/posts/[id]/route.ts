@@ -1,6 +1,6 @@
 import { checkCoverImage, deletePost, databaseErrorMessage, getPostById, getPosts, updatePost } from "../../../lib/db";
 import { requireBlogOwner } from "../../../lib/auth";
-import { jsonError, noStoreHeaders, sameOriginError, parseNumericId } from "../../../lib/http";
+import { jsonError, noStoreHeaders, parseNumericId } from "../../../lib/http";
 import { validatePostInput } from "../../../lib/validation";
 import type { PostInput } from "../../../lib/types";
 
@@ -12,8 +12,6 @@ async function getId(context: RouteContext): Promise<number | null> {
 }
 
 export async function PUT(request: Request, context: RouteContext) {
-  const originError = sameOriginError(request);
-  if (originError) return originError;
   const owner = await requireBlogOwner();
   if (!owner.ok) return owner.response;
 
@@ -66,8 +64,6 @@ export async function PUT(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(request: Request, context: RouteContext) {
-  const originError = sameOriginError(request);
-  if (originError) return originError;
   const owner = await requireBlogOwner();
   if (!owner.ok) return owner.response;
 

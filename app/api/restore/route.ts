@@ -1,6 +1,6 @@
 import { requireBlogOwner } from "../../lib/auth";
 import { checkCoverImage, databaseErrorMessage, restoreBackup } from "../../lib/db";
-import { jsonError, noStoreHeaders, sameOriginError } from "../../lib/http";
+import { jsonError, noStoreHeaders } from "../../lib/http";
 import { validatePostInput, validateSettingsInput } from "../../lib/validation";
 import type { BackupPayload, PostInput, SettingsInput } from "../../lib/types";
 
@@ -13,8 +13,6 @@ function restoredDate(value: unknown, fallback: string): string {
 }
 
 export async function POST(request: Request) {
-  const originError = sameOriginError(request);
-  if (originError) return originError;
   const owner = await requireBlogOwner();
   if (!owner.ok) return owner.response;
 

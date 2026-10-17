@@ -5,7 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 
 // Only this checkout's local DB and test-created session rows are changed.
-const origin = 'http://127.0.0.1:5173';
+const origin = process.env.BLOG_TEST_ORIGIN || 'http://127.0.0.1:5173';
 const password = process.env.BLOG_TEST_PASSWORD;
 if (!password) throw new Error('BLOG_TEST_PASSWORD is required.');
 const directory = new URL('../.wrangler/state/v3/d1/miniflare-D1DatabaseObject/', import.meta.url);
@@ -18,7 +18,7 @@ for (const file of readdirSync(directory).filter(name => name.endsWith('.sqlite'
 if (!db) throw new Error('Local session DB not found. Apply local migrations first.');
 const hashes = [];
 const digest = value => createHash('sha256').update(value).digest('hex');
-const headers = { 'Content-Type': 'application/json', Origin: origin };
+const headers = { 'Content-Type': 'application/json' };
 async function login(cookie = '') {
   const response = await fetch(`${origin}/api/auth/login`, { method: 'POST', headers: { ...headers, Cookie: cookie }, body: JSON.stringify({ password }) });
   assert.equal(response.status, 200);
@@ -39,14 +39,15 @@ try {
   assert.equal(await adminStatus(first), 401, 'rotated session cannot be reused');
   assert.equal(await adminStatus(second), 200);
   const crossOriginLogout = await fetch(`${origin}/api/auth/logout`, { method: 'POST', headers: { Origin: 'https://other.example', Cookie: second } });
-  assert.equal(crossOriginLogout.status, 403);
-  assert.equal(await adminStatus(second), 200, 'cross-origin logout must preserve session');
+  assert.ok([200, 204].includes(crossOriginLogout.status), 'cross-origin logout must be accepted');
+  assert.equal(await adminStatus(second), 401, 'cross-origin logout must invalidate the session');
+  const expiring = await login();
   db.prepare('UPDATE admin_sessions SET expires_at=0 WHERE token_hash=?').run(hashes.at(-1));
-  assert.equal(await adminStatus(second), 401, 'expired session must be denied');
+  assert.equal(await adminStatus(expiring), 401, 'expired session must be denied');
   const third = await login();
   db.prepare('UPDATE admin_sessions SET password_version=? WHERE token_hash=?').run('qa-obsolete-version', hashes.at(-1));
   assert.equal(await adminStatus(third), 401, 'session from an old password version must be denied');
-  console.log('PASS: session token storage, rotation, expiry, password-version invalidation, and cross-origin logout protection.');
+  console.log('PASS: session token storage, rotation, expiry, password-version invalidation, and cross-origin logout invalidation.');
 } finally {
   for (const hash of hashes) db.prepare('DELETE FROM admin_sessions WHERE token_hash=?').run(hash);
   db.close();

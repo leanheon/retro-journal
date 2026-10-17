@@ -1,6 +1,6 @@
 import { checkCoverImage, createPost, databaseErrorMessage, getPublicPosts, getPosts } from "../../lib/db";
 import { requireBlogOwner } from "../../lib/auth";
-import { publicCacheHeaders, jsonError, noStoreHeaders, sameOriginError } from "../../lib/http";
+import { publicCacheHeaders, jsonError, noStoreHeaders } from "../../lib/http";
 import { validatePostInput } from "../../lib/validation";
 import type { PostInput } from "../../lib/types";
 
@@ -13,8 +13,6 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const originError = sameOriginError(request);
-  if (originError) return originError;
 
   const owner = await requireBlogOwner();
   if (!owner.ok) return owner.response;

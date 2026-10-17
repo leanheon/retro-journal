@@ -1,6 +1,6 @@
 import { requireBlogOwner } from "../../lib/auth";
 import { env } from "../../lib/env";
-import { jsonError, noStoreHeaders, sameOriginError } from "../../lib/http";
+import { jsonError, noStoreHeaders } from "../../lib/http";
 import { UPLOADED_IMAGE_KEY_PATTERN } from "../../lib/validation";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -36,8 +36,6 @@ function matchesSignature(bytes: Uint8Array, type: ImageType): boolean {
 }
 
 export async function POST(request: Request) {
-  const originError = sameOriginError(request);
-  if (originError) return originError;
 
   const owner = await requireBlogOwner();
   if (!owner.ok) return owner.response;

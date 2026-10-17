@@ -1,13 +1,9 @@
 import { getAdminPasswordHash, hashAdminPassword, hex, passwordVersion, requireBlogOwner, SESSION_SECONDS, sessionCookie, sha256, verifyAdminPassword } from "../../../lib/auth";
 import { env } from "../../../lib/env";
-import { sameOriginError } from "../../../lib/http";
 
 const fail = (error: string, status: number) => Response.json({ error }, { status, headers: { "Cache-Control": "no-store" } });
 
 export async function POST(request: Request) {
-  const originError = sameOriginError(request);
-  if (originError) return originError;
-  if (request.headers.get("sec-fetch-site") === "cross-site") return fail("같은 사이트에서 변경해 주세요.", 403);
   try {
     const owner = await requireBlogOwner();
     if (!owner.ok) return owner.response;

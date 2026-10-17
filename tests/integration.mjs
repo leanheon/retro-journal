@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 
 // This suite only writes to the isolated loopback development database.
-const origin = 'http://127.0.0.1:5173';
+const origin = process.env.BLOG_TEST_ORIGIN || 'http://127.0.0.1:5173';
 const password = process.env.BLOG_TEST_PASSWORD;
 if (!password) throw new Error('BLOG_TEST_PASSWORD is required to run integration tests.');
 let cookie = '';
 const ids = [];
 async function request(path, { owner = false, method = 'GET', json, body, headers = {} } = {}) {
- const response = await fetch(origin + path, { method, redirect: 'manual', headers: { ...(owner ? {Cookie: cookie} : {}), ...(json !== undefined ? {'Content-Type':'application/json'} : {}), ...(method !== 'GET' ? {Origin: origin} : {}), ...headers }, body: json !== undefined ? JSON.stringify(json) : body });
+ const response = await fetch(origin + path, { method, redirect: 'manual', headers: { ...(owner ? {Cookie: cookie} : {}), ...(json !== undefined ? {'Content-Type':'application/json'} : {}), ...headers }, body: json !== undefined ? JSON.stringify(json) : body });
  return response;
 }
 async function data(response, status = 200) {
@@ -17,7 +17,7 @@ async function data(response, status = 200) {
 }
 try {
  assert.equal((await request('/api/admin')).status, 401);
- assert.equal((await request('/api/posts', {method:'POST',json:{}})).status, 401);
+ assert.equal((await request('/api/posts', {method:'POST',json:{},headers:{Origin:'https://other.example'}})).status, 401);
  const login = await request('/api/auth/login',{method:'POST',json:{password}});
  assert.equal(login.status,200);
  cookie = login.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
@@ -30,7 +30,7 @@ try {
  assert.equal((await request(`/posts/${draft.slug}`)).status,404);
  assert.ok(!(await data(await request('/api/posts'))).posts.some(p=>p.id===draft.id));
  assert.ok(!(await (await request('/feed.xml')).text()).includes(draft.slug));
- assert.equal((await request(`/api/posts/${draft.id}`,{owner:true,method:'PUT',json:{title:'오류'},headers:{Origin:'https://other.example'}})).status,403);
+ assert.equal((await request(`/api/posts/${draft.id}`,{owner:true,method:'PUT',json:{featured:true},headers:{Origin:'https://other.example'}})).status,200);
  assert.equal((await request('/api/posts',{owner:true,method:'POST',json:null})).status,400);
  assert.equal((await request(`/api/posts/${draft.id}`,{owner:true,method:'PUT',json:{title:''}})).status,400);
  const korean = (await data(await request('/api/posts',{owner:true,method:'POST',json:{title:'한글 주소 검증',slug:`한글-기록-${suffix}`,body:'한글 주소도 열립니다.',published:true}}),201)).post;
@@ -66,7 +66,7 @@ try {
  assert.equal(afterRestore.posts.find(p=>p.id===draft.id).title,draft.title);
  const invalid = new FormData(); invalid.set('file',new File(['<svg/>'],'bad.png',{type:'image/png'}));
  assert.equal((await request('/api/upload',{owner:true,method:'POST',body:invalid})).status,400);
- console.log('PASS: owner authentication, CRUD, draft privacy, image upload/privacy, XSS escaping, RSS/sitemap, duplicate validation, cross-origin rejection, backup and safe restore.');
+ console.log('PASS: owner authentication, CRUD, draft privacy, image upload/privacy, XSS escaping, RSS/sitemap, duplicate validation, cross-origin mutations, backup and safe restore.');
 } finally {
  for (const id of ids) await request(`/api/posts/${id}`,{owner:true,method:'DELETE'});
  if (cookie) await request('/api/auth/logout',{owner:true,method:'POST'});

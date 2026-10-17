@@ -1,20 +1,13 @@
 import { cookies } from "next/headers";
 import { ADMIN_COOKIE, SESSION_SECONDS, getAdminPasswordHash, hex, passwordIsConfigured, passwordVersion, sessionCookie, sha256, verifyAdminPassword } from "../../../lib/auth";
 import { env } from "../../../lib/env";
-import { sameOriginError } from "../../../lib/http";
 
 function error(message: string, status: number, extraHeaders: Record<string, string> = {}) {
   return Response.json({ error: message }, { status, headers: { "Cache-Control": "no-store", ...extraHeaders } });
 }
 
 export async function POST(request: Request) {
-  const originError = sameOriginError(request);
-  if (originError) return originError;
-  if (request.headers.get("sec-fetch-site") === "cross-site") return error("같은 사이트에서 로그인해 주세요.", 403);
   if (!passwordIsConfigured()) return error("관리자 비밀번호가 아직 설정되지 않았습니다.", 503);
-  const url = new URL(request.url);
-  const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-  if (!local && url.protocol !== "https:") return error("보안 연결에서 로그인해 주세요.", 400);
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) return error("로그인 요청 형식을 확인해 주세요.", 400);
   if (Number(request.headers.get("content-length") ?? "0") > 2048) return error("로그인 요청이 너무 큽니다.", 413);
   let input: unknown;

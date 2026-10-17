@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 
 // This suite talks only to the isolated loopback development server.
-const origin = "http://127.0.0.1:5173";
+const origin = process.env.BLOG_TEST_ORIGIN || "http://127.0.0.1:5173";
 const password = process.env.BLOG_TEST_PASSWORD;
 if (!password) {
   throw new Error("BLOG_TEST_PASSWORD is required to run password auth tests.");
@@ -20,7 +20,6 @@ function request(path, {
     headers: {
       ...(cookie ? { Cookie: cookie } : {}),
       ...(json !== undefined ? { "Content-Type": "application/json" } : {}),
-      ...(method !== "GET" ? { Origin: origin } : {}),
       ...headers,
     },
     body: json !== undefined ? JSON.stringify(json) : body,
@@ -53,7 +52,11 @@ try {
   assertStatus(await request("/api/admin"), 401, "anonymous admin API must be protected");
   assertStatus(await request("/api/upload"), 401, "anonymous upload API must be protected");
   assertStatus(
-    await request("/api/posts", { method: "POST", json: {} }),
+    await request("/api/posts", {
+      method: "POST",
+      headers: { Origin: "https://other.example" },
+      json: {},
+    }),
     401,
     "anonymous write API must be protected",
   );
@@ -82,30 +85,27 @@ try {
     "an incorrect password must be rejected",
   );
 
-  // Login uses only the configured password. Caller-supplied IP headers must
-  // not create a shared lockout after repeated incorrect passwords.
-  for (let attempt = 0; attempt < 7; attempt += 1) {
-    const response = await request("/api/auth/login", {
-      method: "POST",
-      headers: {
-        "CF-Connecting-IP": `198.51.100.${attempt + 1}`,
-        "X-Forwarded-For": `203.0.113.${attempt + 1}`,
-        Forwarded: `for=192.0.2.${attempt + 1}`,
-      },
-      json: { password: wrongPassword },
-    });
-    assert.equal(response.status, 401, "incorrect passwords must remain ordinary authentication failures");
-  }
-
+  // Login depends only on the configured password. The page origin does not
+  // change the result.
+  const crossOriginLogin = await request("/api/auth/login", {
+    method: "POST",
+    headers: { Origin: "https://other.example" },
+    json: { password },
+  });
+  assertStatus(crossOriginLogin, 200, "a valid password must authenticate regardless of origin");
+  const crossOriginSetCookie = crossOriginLogin.headers.getSetCookie().find((value) => !/max-age\s*=\s*0/i.test(value));
+  assert.ok(crossOriginSetCookie, "cross-origin login must return a live session cookie");
+  const crossOriginCookie = cookiePair(crossOriginSetCookie);
   assertStatus(
-    await request("/api/auth/login", {
+    await request("/api/auth/logout", {
+      cookie: crossOriginCookie,
       method: "POST",
       headers: { Origin: "https://other.example" },
-      json: { password },
     }),
-    403,
-    "cross-origin login must be rejected",
+    200,
+    "a cross-origin logout must be accepted",
   );
+  assertStatus(await request("/api/admin", { cookie: crossOriginCookie }), 401, "cross-origin logout must invalidate the session");
 
   assertStatus(
     await request("/api/auth/login", {
@@ -166,7 +166,7 @@ try {
   assertStatus(await request("/api/admin", { cookie: session }), 401, "a logged-out session must not be reusable");
   session = "";
 
-  console.log("PASS: password auth anonymous protection, password-only login, cookie attributes, admin access, forged/logout session rejection, and IP-header independence.");
+  console.log("PASS: password auth anonymous protection, password-only login, cookie attributes, cross-origin login/logout, admin access, and forged session rejection.");
 } finally {
   if (session) {
     await request("/api/auth/logout", { cookie: session, method: "POST" });

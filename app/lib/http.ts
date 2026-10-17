@@ -19,29 +19,6 @@ export function publicCacheHeaders(): HeadersInit {
   };
 }
 
-/**
- * Browser mutations must remain same-origin. Requests from scripts without an
- * Origin/Referer header are allowed for owner-operated tooling; any header
- * that is present must match the configured canonical origin.
- */
-export function sameOriginError(request: Request): Response | null {
-  const origin = request.headers.get("origin")?.trim();
-  const referer = request.headers.get("referer")?.trim();
-  const candidate = origin || referer;
-  if (!candidate) return null;
-
-  try {
-    const candidateOrigin = new URL(candidate).origin;
-    if (candidateOrigin !== blogOrigin(request)) {
-      return jsonError("같은 사이트에서 보낸 요청만 처리할 수 있습니다.", 403);
-    }
-  } catch {
-    return jsonError("요청 출처를 확인할 수 없습니다.", 403);
-  }
-
-  return null;
-}
-
 export function parseNumericId(value: string): number | null {
   if (!/^\d+$/.test(value)) return null;
   const id = Number(value);

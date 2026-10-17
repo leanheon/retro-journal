@@ -1,6 +1,6 @@
 import { requireBlogOwner } from "../../lib/auth";
 import { databaseErrorMessage, getSettings, saveSettings } from "../../lib/db";
-import { jsonError, noStoreHeaders, publicCacheHeaders, sameOriginError } from "../../lib/http";
+import { jsonError, noStoreHeaders, publicCacheHeaders } from "../../lib/http";
 import { validateSettingsInput } from "../../lib/validation";
 import type { SettingsInput } from "../../lib/types";
 
@@ -13,8 +13,6 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const originError = sameOriginError(request);
-  if (originError) return originError;
   const owner = await requireBlogOwner();
   if (!owner.ok) return owner.response;
 
